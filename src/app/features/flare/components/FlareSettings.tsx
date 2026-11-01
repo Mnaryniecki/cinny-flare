@@ -322,7 +322,7 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                     variant="Secondary"
                     fill="Outline"
                     radii="Pill"
-                    before={<Icon src={Icons.Upload} size="50" />}
+                    before={<Icon src={Icons.Photo} size="50" />}
                     onClick={() => avatarInputRef.current?.click()}
                   >
                     <Text size="B200">Upload Custom Frame (APNG/WebP/GIF)</Text>
@@ -404,7 +404,7 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                     variant="Secondary"
                     fill="Outline"
                     radii="Pill"
-                    before={<Icon src={Icons.Upload} size="50" />}
+                    before={<Icon src={Icons.Photo} size="50" />}
                     onClick={() => bannerInputRef.current?.click()}
                   >
                     <Text size="B200">Upload Banner Image or Video</Text>
