@@ -10,6 +10,9 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
+    "build:web": "vite build",
+    "build:apk": "npx cap sync android && cd android && ./gradlew assembleDebug",
+    "build:desktop": "cargo tauri build",
     "preview": "vite preview",
     "lint": "npm run check:eslint && npm run check:prettier",
     "check:eslint": "eslint src/*",
@@ -90,6 +93,9 @@
     "ua-parser-js": "1.0.35"
   },
   "devDependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
     "@element-hq/element-call-embedded": "0.20.1",
     "@esbuild-plugins/node-globals-polyfill": "0.2.3",
     "@rollup/plugin-inject": "5.0.3",

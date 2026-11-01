@@ -21,27 +21,40 @@ import { UserPresence } from '../../hooks/useUserPresence';
 import { AvatarPresence, PresenceBadge } from '../presence';
 import { ImageViewer } from '../image-viewer';
 import { stopPropagation } from '../../utils/keyboard';
+import { ProfileFlare, AvatarDecorationOverlay } from '../../features/flare';
+import { useMatrixClient } from '../../hooks/useMatrixClient';
+import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
+import { mxcUrlToHttp } from '../../utils/matrix';
 
 type UserHeroProps = {
   userId: string;
   avatarUrl?: string;
   presence?: UserPresence;
+  flare?: ProfileFlare | null;
 };
-export function UserHero({ userId, avatarUrl, presence }: UserHeroProps) {
+export function UserHero({ userId, avatarUrl, presence, flare }: UserHeroProps) {
   const [viewAvatar, setViewAvatar] = useState<string>();
+  const mx = useMatrixClient();
+  const useAuth = useMediaAuthentication();
+
+  const customBannerUrl = flare?.banner?.url ? mxcUrlToHttp(mx, flare.banner.url, useAuth) : undefined;
+  const customGradient = flare?.banner?.gradient;
 
   return (
     <Box direction="Column" className={css.UserHero}>
       <div
         className={css.UserHeroCoverContainer}
         style={{
-          backgroundColor: colorMXID(userId),
-          filter: avatarUrl ? undefined : 'brightness(50%)',
+          background: customGradient || undefined,
+          backgroundColor: customGradient ? undefined : colorMXID(userId),
+          filter: avatarUrl || customBannerUrl || customGradient ? undefined : 'brightness(50%)',
         }}
       >
-        {avatarUrl && (
+        {customBannerUrl ? (
+          <img className={css.UserHeroCover} src={customBannerUrl} alt={userId} draggable="false" />
+        ) : avatarUrl && !customGradient ? (
           <img className={css.UserHeroCover} src={avatarUrl} alt={userId} draggable="false" />
-        )}
+        ) : null}
       </div>
       <div className={css.UserHeroAvatarContainer}>
         <AvatarPresence
@@ -50,20 +63,25 @@ export function UserHero({ userId, avatarUrl, presence }: UserHeroProps) {
             presence && <PresenceBadge presence={presence.presence} status={presence.status} />
           }
         >
-          <Avatar
-            as={avatarUrl ? 'button' : 'div'}
-            onClick={avatarUrl ? () => setViewAvatar(avatarUrl) : undefined}
-            className={css.UserHeroAvatar}
-            size="500"
-          >
-            <UserAvatar
-              className={css.UserHeroAvatarImg}
-              userId={userId}
-              src={avatarUrl}
-              alt={userId}
-              renderFallback={() => <Icon size="500" src={Icons.User} filled />}
-            />
-          </Avatar>
+          <div style={{ position: 'relative' }}>
+            <Avatar
+              as={avatarUrl ? 'button' : 'div'}
+              onClick={avatarUrl ? () => setViewAvatar(avatarUrl) : undefined}
+              className={css.UserHeroAvatar}
+              size="500"
+            >
+              <UserAvatar
+                className={css.UserHeroAvatarImg}
+                userId={userId}
+                src={avatarUrl}
+                alt={userId}
+                renderFallback={() => <Icon size="500" src={Icons.User} filled />}
+              />
+            </Avatar>
+            {flare?.avatarDecoration?.url && (
+              <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
+            )}
+          </div>
         </AvatarPresence>
         {viewAvatar && (
           <Overlay open backdrop={<OverlayBackdrop />}>

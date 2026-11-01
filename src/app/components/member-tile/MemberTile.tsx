@@ -5,6 +5,7 @@ import { getMemberDisplayName } from '../../utils/room';
 import { getMxIdLocalPart } from '../../utils/matrix';
 import { UserAvatar } from '../user-avatar';
 import * as css from './style.css';
+import { useUserFlare, AvatarDecorationOverlay } from '../../features/flare';
 
 const getName = (room: Room, member: RoomMember) =>
   getMemberDisplayName(room, member.userId) ?? getMxIdLocalPart(member.userId) ?? member.userId;
@@ -20,6 +21,7 @@ export const MemberTile = as<'button', MemberTileProps>(
   ({ as: AsMemberTile = 'button', mx, room, member, useAuthentication, after, ...props }, ref) => {
     const name = getName(room, member);
     const username = getMxIdLocalPart(member.userId);
+    const { flare } = useUserFlare(member.userId);
 
     const avatarMxcUrl = member.getMxcAvatarUrl();
     const avatarUrl = avatarMxcUrl
@@ -28,14 +30,19 @@ export const MemberTile = as<'button', MemberTileProps>(
 
     return (
       <AsMemberTile className={css.MemberTile} {...props} ref={ref}>
-        <Avatar size="300" radii="400">
-          <UserAvatar
-            userId={member.userId}
-            src={avatarUrl ?? undefined}
-            alt={name}
-            renderFallback={() => <Icon size="300" src={Icons.User} filled />}
-          />
-        </Avatar>
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <Avatar size="300" radii="400">
+            <UserAvatar
+              userId={member.userId}
+              src={avatarUrl ?? undefined}
+              alt={name}
+              renderFallback={() => <Icon size="300" src={Icons.User} filled />}
+            />
+          </Avatar>
+          {flare?.avatarDecoration?.url && (
+            <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
+          )}
+        </div>
         <Box grow="Yes" as="span" direction="Column">
           <Text as="span" size="T300" truncate>
             <b>{name}</b>

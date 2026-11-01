@@ -1,0 +1,10 @@
+{
+  "appId": "in.cinny.flare",
+  "appName": "Cinny Flare",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

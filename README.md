@@ -1,4 +1,24 @@
-# Cinny
+# Cinny Flare
+
+> [!NOTE]
+> **A Note on this Fork:**
+> This is a **vibecoded** fork of Cinny. To be completely candid, I'm not thrilled to have vibecoded this—I generally prefer doing things properly, but I am currently swamped and busy with my thesis. I needed a quick, working Matrix client for me and my group of friends that delivered the exact custom profile flairs, avatar decorations, and showcase boards they wanted without spending weeks writing a client from the ground up.
+
+A fork of Cinny adding rich custom profile flair, animated avatar decorations, and Discord-style showcase boards backed natively by the Matrix protocol.
+
+---
+
+### ✨ What's Added in this Fork
+
+- **Avatar Decorations & Animated Rings:** Presets (Cosmic Orb, Cyberpunk Ring, Golden Radiance, Matrix Pulse, Void) or upload your own APNG/WebP/GIF/SVG.
+- **Custom Profile Banners:** Upload custom banners or choose custom gradient themes.
+- **Showcase Boards:** Add modular game lists ("Games in Rotation", "Games I Like"), custom tags, badges, and bios.
+- **Matrix-Native Storage:** Uses Matrix Account Data and MSC4133 extended profile endpoints.
+- **Multiplatform Packaging:** Build scripts ready for Web, Android (`.apk`), and PC (`.exe`). See [FLAIR_GUIDE.md](./FLAIR_GUIDE.md) for full documentation.
+
+---
+
+# Original Cinny README
 <p>
     <a href="https://github.com/ajbura/cinny/releases">
         <img alt="GitHub release downloads" src="https://img.shields.io/github/downloads/ajbura/cinny/total?logo=github&style=social"></a>

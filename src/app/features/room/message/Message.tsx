@@ -73,6 +73,7 @@ import { copyToClipboard } from '../../../utils/dom';
 import { stopPropagation } from '../../../utils/keyboard';
 import { getMatrixToRoomEvent } from '../../../plugins/matrix-to';
 import { getViaServers } from '../../../plugins/via-servers';
+import { useUserFlare, AvatarDecorationOverlay } from '../../flare';
 import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
 import { useRoomPinnedEvents } from '../../../hooks/useRoomPinnedEvents';
 import { MemberPowerTag, StateEvent } from '../../../../types/matrix/room';
@@ -721,6 +722,7 @@ export const Message = as<'div', MessageProps>(
     const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
     const senderId = mEvent.getSender() ?? '';
+    const { flare } = useUserFlare(senderId);
 
     const [hover, setHover] = useState(false);
     const { hoverProps } = useHover({ onHoverChange: setHover });
@@ -792,24 +794,29 @@ export const Message = as<'div', MessageProps>(
       <AvatarBase
         className={messageLayout === MessageLayout.Bubble ? css.BubbleAvatarBase : undefined}
       >
-        <Avatar
-          className={css.MessageAvatar}
-          as="button"
-          size="300"
-          data-user-id={senderId}
-          onClick={onUserClick}
-        >
-          <UserAvatar
-            userId={senderId}
-            src={
-              senderAvatarMxc
-                ? mxcUrlToHttp(mx, senderAvatarMxc, useAuthentication, 48, 48, 'crop') ?? undefined
-                : undefined
-            }
-            alt={senderDisplayName}
-            renderFallback={() => <Icon size="200" src={Icons.User} filled />}
-          />
-        </Avatar>
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <Avatar
+            className={css.MessageAvatar}
+            as="button"
+            size="300"
+            data-user-id={senderId}
+            onClick={onUserClick}
+          >
+            <UserAvatar
+              userId={senderId}
+              src={
+                senderAvatarMxc
+                  ? mxcUrlToHttp(mx, senderAvatarMxc, useAuthentication, 48, 48, 'crop') ?? undefined
+                  : undefined
+              }
+              alt={senderDisplayName}
+              renderFallback={() => <Icon size="200" src={Icons.User} filled />}
+            />
+          </Avatar>
+          {flare?.avatarDecoration?.url && (
+            <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
+          )}
+        </div>
       </AvatarBase>
     );
 

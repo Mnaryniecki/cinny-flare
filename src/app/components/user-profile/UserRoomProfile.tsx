@@ -22,12 +22,14 @@ import { useMemberPowerCompare } from '../../hooks/useMemberPowerCompare';
 import { CreatorChip } from './CreatorChip';
 import { getDirectCreatePath, withSearchParam } from '../../pages/pathUtils';
 import { DirectCreateSearchParams } from '../../pages/paths';
+import { useUserFlare, FlareProfileBoard } from '../../features/flare';
 
 type UserRoomProfileProps = {
   userId: string;
 };
 export function UserRoomProfile({ userId }: UserRoomProfileProps) {
   const mx = useMatrixClient();
+  const { flare } = useUserFlare(userId);
   const useAuthentication = useMediaAuthentication();
   const navigate = useNavigate();
   const closeUserRoomProfile = useCloseUserRoomProfile();
@@ -73,6 +75,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
         userId={userId}
         avatarUrl={avatarUrl}
         presence={presence && presence.lastActiveTs !== 0 ? presence : undefined}
+        flare={flare}
       />
       <Box direction="Column" gap="500" style={{ padding: config.space.S400 }}>
         <Box direction="Column" gap="400">
@@ -101,6 +104,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
             {userId !== myUserId && <OptionsChip userId={userId} />}
           </Box>
         </Box>
+        <FlareProfileBoard flare={flare} />
         {ignored && <IgnoredUserAlert />}
         {member && membership === Membership.Ban && (
           <UserBanAlert

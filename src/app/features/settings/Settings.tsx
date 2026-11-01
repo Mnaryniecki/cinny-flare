@@ -30,6 +30,7 @@ import { Devices } from './devices';
 import { EmojisStickers } from './emojis-stickers';
 import { DeveloperTools } from './developer-tools';
 import { About } from './about';
+import { FlareSettings } from '../flare';
 import { UseStateProvider } from '../../components/UseStateProvider';
 import { stopPropagation } from '../../utils/keyboard';
 import { LogoutDialog } from '../../components/LogoutDialog';
@@ -37,6 +38,7 @@ import { LogoutDialog } from '../../components/LogoutDialog';
 export enum SettingsPages {
   GeneralPage,
   AccountPage,
+  ProfileFlarePage,
   NotificationPage,
   DevicesPage,
   EmojisStickersPage,
@@ -62,6 +64,11 @@ const useSettingsMenuItems = (): SettingsMenuItem[] =>
         page: SettingsPages.AccountPage,
         name: 'Account',
         icon: Icons.User,
+      },
+      {
+        page: SettingsPages.ProfileFlarePage,
+        name: 'Profile Flair',
+        icon: Icons.Star,
       },
       {
         page: SettingsPages.NotificationPage,
@@ -215,6 +222,9 @@ export function Settings({ initialPage, requestClose }: SettingsProps) {
       )}
       {activePage === SettingsPages.AccountPage && (
         <Account requestClose={handlePageRequestClose} />
+      )}
+      {activePage === SettingsPages.ProfileFlarePage && (
+        <FlareSettings requestClose={handlePageRequestClose} />
       )}
       {activePage === SettingsPages.NotificationPage && (
         <Notifications requestClose={handlePageRequestClose} />
