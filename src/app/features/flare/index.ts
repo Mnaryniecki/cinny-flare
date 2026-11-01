@@ -2,5 +2,8 @@ export * from './types';
 export * from './api';
 export * from './useUserFlare';
 export * from './components/AvatarDecorationOverlay';
+export * from './components/UserNameplate';
+export * from './components/ProfileEffectOverlay';
+export * from './components/ProfileCardFrameWrapper';
 export * from './components/FlareProfileBoard';
 export * from './components/FlareSettings';

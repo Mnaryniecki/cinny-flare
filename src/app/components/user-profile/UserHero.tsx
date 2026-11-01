@@ -21,7 +21,7 @@ import { UserPresence } from '../../hooks/useUserPresence';
 import { AvatarPresence, PresenceBadge } from '../presence';
 import { ImageViewer } from '../image-viewer';
 import { stopPropagation } from '../../utils/keyboard';
-import { ProfileFlare, AvatarDecorationOverlay } from '../../features/flare';
+import { ProfileFlare, AvatarDecorationOverlay, UserNameplate } from '../../features/flare';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { mxcUrlToHttp } from '../../utils/matrix';
@@ -113,20 +113,23 @@ export function UserHero({ userId, avatarUrl, presence, flare }: UserHeroProps) 
 type UserHeroNameProps = {
   displayName?: string;
   userId: string;
+  flare?: ProfileFlare | null;
 };
-export function UserHeroName({ displayName, userId }: UserHeroNameProps) {
+export function UserHeroName({ displayName, userId, flare }: UserHeroNameProps) {
   const username = getMxIdLocalPart(userId);
 
   return (
     <Box grow="Yes" direction="Column" gap="0">
       <Box alignItems="Baseline" gap="200" wrap="Wrap">
-        <Text
-          size="H4"
-          className={classNames(BreakWord, LineClamp3)}
-          title={displayName ?? username}
-        >
-          {displayName ?? username ?? userId}
-        </Text>
+        <UserNameplate nameplate={flare?.nameplate}>
+          <Text
+            size="H4"
+            className={classNames(BreakWord, LineClamp3)}
+            title={displayName ?? username}
+          >
+            {displayName ?? username ?? userId}
+          </Text>
+        </UserNameplate>
       </Box>
       <Box alignItems="Center" gap="100" wrap="Wrap">
         <Text size="T200" className={classNames(BreakWord, LineClamp3)} title={username}>

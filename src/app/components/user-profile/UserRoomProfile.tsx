@@ -22,7 +22,12 @@ import { useMemberPowerCompare } from '../../hooks/useMemberPowerCompare';
 import { CreatorChip } from './CreatorChip';
 import { getDirectCreatePath, withSearchParam } from '../../pages/pathUtils';
 import { DirectCreateSearchParams } from '../../pages/paths';
-import { useUserFlare, FlareProfileBoard } from '../../features/flare';
+import {
+  useUserFlare,
+  FlareProfileBoard,
+  ProfileCardFrameWrapper,
+  ProfileEffectOverlay,
+} from '../../features/flare';
 
 type UserRoomProfileProps = {
   userId: string;
@@ -70,77 +75,82 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
   };
 
   return (
-    <Box direction="Column">
-      <UserHero
-        userId={userId}
-        avatarUrl={avatarUrl}
-        presence={presence && presence.lastActiveTs !== 0 ? presence : undefined}
-        flare={flare}
-      />
-      <Box direction="Column" gap="500" style={{ padding: config.space.S400 }}>
-        <Box direction="Column" gap="400">
-          <Box gap="400" alignItems="Start">
-            <UserHeroName displayName={displayName} userId={userId} />
-            {userId !== myUserId && (
-              <Box shrink="No">
-                <Button
-                  size="300"
-                  variant="Primary"
-                  fill="Solid"
-                  radii="300"
-                  before={<Icon size="50" src={Icons.Message} filled />}
-                  onClick={handleMessage}
-                >
-                  <Text size="B300">Message</Text>
-                </Button>
+    <ProfileCardFrameWrapper frame={flare?.profileFrame}>
+      <div style={{ position: 'relative' }}>
+        <ProfileEffectOverlay effect={flare?.profileEffect} />
+        <Box direction="Column">
+          <UserHero
+            userId={userId}
+            avatarUrl={avatarUrl}
+            presence={presence && presence.lastActiveTs !== 0 ? presence : undefined}
+            flare={flare}
+          />
+          <Box direction="Column" gap="500" style={{ padding: config.space.S400 }}>
+            <Box direction="Column" gap="400">
+              <Box gap="400" alignItems="Start">
+                <UserHeroName displayName={displayName} userId={userId} flare={flare} />
+                {userId !== myUserId && (
+                  <Box shrink="No">
+                    <Button
+                      size="300"
+                      variant="Primary"
+                      fill="Solid"
+                      radii="300"
+                      before={<Icon size="50" src={Icons.Message} filled />}
+                      onClick={handleMessage}
+                    >
+                      <Text size="B300">Message</Text>
+                    </Button>
+                  </Box>
+                )}
               </Box>
+              <Box alignItems="Center" gap="200" wrap="Wrap">
+                {server && <ServerChip server={server} />}
+                <ShareChip userId={userId} />
+                {creator ? <CreatorChip /> : <PowerChip userId={userId} />}
+                {userId !== myUserId && <MutualRoomsChip userId={userId} />}
+                {userId !== myUserId && <OptionsChip userId={userId} />}
+              </Box>
+            </Box>
+            <FlareProfileBoard flare={flare} />
+            {ignored && <IgnoredUserAlert />}
+            {member && membership === Membership.Ban && (
+              <UserBanAlert
+                userId={userId}
+                reason={member.events.member?.getContent().reason}
+                canUnban={canUnban}
+                bannedBy={member.events.member?.getSender()}
+                ts={member.events.member?.getTs()}
+              />
             )}
-          </Box>
-          <Box alignItems="Center" gap="200" wrap="Wrap">
-            {server && <ServerChip server={server} />}
-            <ShareChip userId={userId} />
-            {creator ? <CreatorChip /> : <PowerChip userId={userId} />}
-            {userId !== myUserId && <MutualRoomsChip userId={userId} />}
-            {userId !== myUserId && <OptionsChip userId={userId} />}
+            {member &&
+              membership === Membership.Leave &&
+              member.events.member &&
+              member.events.member.getSender() !== userId && (
+                <UserKickAlert
+                  reason={member.events.member?.getContent().reason}
+                  kickedBy={member.events.member?.getSender()}
+                  ts={member.events.member?.getTs()}
+                />
+              )}
+            {member && membership === Membership.Invite && (
+              <UserInviteAlert
+                userId={userId}
+                reason={member.events.member?.getContent().reason}
+                canKick={canKickUser}
+                invitedBy={member.events.member?.getSender()}
+                ts={member.events.member?.getTs()}
+              />
+            )}
+            <UserModeration
+              userId={userId}
+              canInvite={canInvite && membership === Membership.Leave}
+              canKick={canKickUser && membership === Membership.Join}
+              canBan={canBanUser && membership !== Membership.Ban}
+            />
           </Box>
         </Box>
-        <FlareProfileBoard flare={flare} />
-        {ignored && <IgnoredUserAlert />}
-        {member && membership === Membership.Ban && (
-          <UserBanAlert
-            userId={userId}
-            reason={member.events.member?.getContent().reason}
-            canUnban={canUnban}
-            bannedBy={member.events.member?.getSender()}
-            ts={member.events.member?.getTs()}
-          />
-        )}
-        {member &&
-          membership === Membership.Leave &&
-          member.events.member &&
-          member.events.member.getSender() !== userId && (
-            <UserKickAlert
-              reason={member.events.member?.getContent().reason}
-              kickedBy={member.events.member?.getSender()}
-              ts={member.events.member?.getTs()}
-            />
-          )}
-        {member && membership === Membership.Invite && (
-          <UserInviteAlert
-            userId={userId}
-            reason={member.events.member?.getContent().reason}
-            canKick={canKickUser}
-            invitedBy={member.events.member?.getSender()}
-            ts={member.events.member?.getTs()}
-          />
-        )}
-        <UserModeration
-          userId={userId}
-          canInvite={canInvite && membership === Membership.Leave}
-          canKick={canKickUser && membership === Membership.Join}
-          canBan={canBanUser && membership !== Membership.Ban}
-        />
-      </Box>
-    </Box>
+      </div>
+    </ProfileCardFrameWrapper>
   );
 }

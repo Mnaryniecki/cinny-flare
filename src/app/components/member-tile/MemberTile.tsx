@@ -5,7 +5,7 @@ import { getMemberDisplayName } from '../../utils/room';
 import { getMxIdLocalPart } from '../../utils/matrix';
 import { UserAvatar } from '../user-avatar';
 import * as css from './style.css';
-import { useUserFlare, AvatarDecorationOverlay } from '../../features/flare';
+import { useUserFlare, AvatarDecorationOverlay, UserNameplate } from '../../features/flare';
 
 const getName = (room: Room, member: RoomMember) =>
   getMemberDisplayName(room, member.userId) ?? getMxIdLocalPart(member.userId) ?? member.userId;
@@ -31,7 +31,7 @@ export const MemberTile = as<'button', MemberTileProps>(
     return (
       <AsMemberTile className={css.MemberTile} {...props} ref={ref}>
         <div style={{ position: 'relative', display: 'inline-flex' }}>
-          <Avatar size="300" radii="400">
+          <Avatar size="300" radii="Pill">
             <UserAvatar
               userId={member.userId}
               src={avatarUrl ?? undefined}
@@ -44,9 +44,11 @@ export const MemberTile = as<'button', MemberTileProps>(
           )}
         </div>
         <Box grow="Yes" as="span" direction="Column">
-          <Text as="span" size="T300" truncate>
-            <b>{name}</b>
-          </Text>
+          <UserNameplate nameplate={flare?.nameplate}>
+            <Text as="span" size="T300" truncate>
+              <b>{name}</b>
+            </Text>
+          </UserNameplate>
           <Box alignItems="Center" justifyContent="SpaceBetween" gap="100">
             <Text as="span" size="T200" priority="300" truncate>
               {username}

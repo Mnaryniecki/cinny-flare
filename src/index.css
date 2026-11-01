@@ -38,6 +38,29 @@
   --font-secondary: 'InterVariable', var(--font-emoji), sans-serif;
 }
 
+/* ========================================================
+   CIRCULAR AVATAR OVERRIDES (Fit all circular flairs)
+   ======================================================== */
+span[class*="_1684mq51"],
+div[class*="_1684mq51"],
+button[class*="_1684mq51"],
+[class*="UserAvatar"],
+[class*="RoomAvatar"],
+[class*="UserHeroAvatar"],
+[class*="MessageAvatar"],
+[class*="MemberTile"] span[class*="_1684mq5"],
+[class*="UserAvatarContainer"] span,
+span[class*="Avatar"] {
+  border-radius: 50% !important;
+}
+
+[class*="UserAvatar"] img,
+[class*="RoomAvatar"] img,
+[class*="AvatarImage"],
+[class*="AvatarFallback"] {
+  border-radius: 50% !important;
+}
+
 html {
   height: 100%;
   overflow: hidden;
