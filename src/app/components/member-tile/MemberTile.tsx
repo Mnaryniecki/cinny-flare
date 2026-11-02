@@ -44,7 +44,7 @@ export const MemberTile = as<'button', MemberTileProps>(
           )}
         </div>
         <Box grow="Yes" as="span" direction="Column">
-          <UserNameplate nameplate={flare?.nameplate}>
+          <UserNameplate nameplate={flare?.nameplate} font={flare?.font}>
             <Text as="span" size="T300" truncate>
               <b>{name}</b>
             </Text>

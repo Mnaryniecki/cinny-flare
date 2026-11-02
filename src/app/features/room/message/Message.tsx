@@ -764,7 +764,7 @@ export const Message = as<'div', MessageProps>(
               size={messageLayout === MessageLayout.Bubble ? 'T300' : 'T400'}
               truncate
             >
-              <UserNameplate nameplate={flare?.nameplate}>
+              <UserNameplate nameplate={flare?.nameplate} font={flare?.font}>
                 <UsernameBold>{senderDisplayName}</UsernameBold>
               </UserNameplate>
             </Text>

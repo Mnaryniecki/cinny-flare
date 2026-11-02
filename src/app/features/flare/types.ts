@@ -55,16 +55,28 @@ export type ShowcaseBoard = {
   items: ShowcaseItem[];
 };
 
+export type ProfileFont = {
+  preset?: string;        // ID of preset font
+  family?: string;        // Font family name (Google font or custom uploaded name)
+  url?: string;           // mxc:// or web URL for custom uploaded font file
+  textColor?: string;     // Custom text color
+  textShadow?: string;    // CSS text-shadow or glow effect
+  weight?: string;        // e.g. 'normal' | 'bold' | '700'
+  letterSpacing?: string; // e.g. '0px' | '1px' | '2px'
+  textTransform?: 'none' | 'uppercase' | 'capitalize' | 'lowercase';
+};
+
 export type ProfileFlare = {
   version: 1;
   bio?: string;
   headline?: string;
   pronouns?: string;
-  // The 4 Discord-style customizable layers:
+  // The Discord-style customizable layers:
   avatarDecoration?: AvatarDecoration; // 1. Avatar Decoration
   nameplate?: ProfileNameplate;       // 2. Custom Nameplate banner
-  profileEffect?: ProfileEffect;       // 3. Profile Effect overlay
-  profileFrame?: ProfileCardFrame;     // 4. Outer Profile Card Frame
+  font?: ProfileFont;                  // 3. Custom Display Name Font & Glow
+  profileEffect?: ProfileEffect;       // 4. Profile Effect overlay
+  profileFrame?: ProfileCardFrame;     // 5. Outer Profile Card Frame
   banner?: ProfileBanner;
   badges?: ProfileBadge[];
   boards?: ShowcaseBoard[];
@@ -84,6 +96,16 @@ export const DEFAULT_FLARE: ProfileFlare = {
   },
   nameplate: {
     preset: '',
+  },
+  font: {
+    preset: '',
+    family: '',
+    url: '',
+    textColor: '',
+    textShadow: '',
+    weight: 'normal',
+    letterSpacing: 'normal',
+    textTransform: 'none',
   },
   profileEffect: {
     preset: '',
@@ -307,3 +329,186 @@ export const PRESET_FRAMES = [
     },
   },
 ];
+
+// 5. Preset Fonts (Discord Nitro style presets + custom font loader)
+export const PRESET_FONTS = [
+  {
+    id: 'unholy-gothic',
+    name: 'Unholy Gothic',
+    family: "'UnifrakturMaguntia', 'MedievalSharp', fantasy, serif",
+    googleFont: 'UnifrakturMaguntia',
+    sample: 'Unholy Gothic',
+    category: 'Gothic',
+    weight: 'normal',
+    letterSpacing: '1px',
+    textShadow: '0 0 6px rgba(185, 28, 28, 0.7)',
+    description: 'Medieval blackletter gothic calligraphy (Discord Nitro style)',
+  },
+  {
+    id: 'entity-horror',
+    name: 'The Entity Spooky',
+    family: "'Creepster', cursive",
+    googleFont: 'Creepster',
+    sample: 'Entity Horror',
+    category: 'Horror',
+    weight: 'normal',
+    letterSpacing: '1.5px',
+    textShadow: '0 0 8px rgba(234, 88, 12, 0.8), 0 0 15px rgba(124, 45, 18, 0.6)',
+    description: 'Dripping horror entity typography for Dead by Daylight lovers',
+  },
+  {
+    id: 'cursed-pirate',
+    name: 'Cursed Relic',
+    family: "'Pirata One', 'Cinzel Decorative', cursive",
+    googleFont: 'Pirata One',
+    sample: 'Cursed Relic',
+    category: 'Gothic',
+    weight: 'normal',
+    letterSpacing: '1px',
+    textShadow: '0 0 5px rgba(234, 179, 8, 0.6)',
+    description: 'Swashbuckling dark fantasy serif',
+  },
+  {
+    id: 'arcade-pixel',
+    name: 'Arcade 8-Bit',
+    family: "'Press Start 2P', monospace",
+    googleFont: 'Press Start 2P',
+    sample: '8-BIT PIXEL',
+    category: 'Gaming',
+    weight: 'normal',
+    letterSpacing: '0px',
+    textShadow: '2px 2px 0px #000, 0 0 8px rgba(16, 185, 129, 0.8)',
+    description: 'Classic retro video game arcade pixel font',
+  },
+  {
+    id: 'silkscreen-pixel',
+    name: 'Silkscreen Retro',
+    family: "'Silkscreen', monospace",
+    googleFont: 'Silkscreen',
+    sample: 'SILKSCREEN',
+    category: 'Gaming',
+    weight: '700',
+    letterSpacing: '1px',
+    textShadow: '0 0 5px rgba(6, 182, 212, 0.6)',
+    description: 'Crisp futuristic micro-pixel font',
+  },
+  {
+    id: 'cyber-orbitron',
+    name: 'Cyberpunk Matrix',
+    family: "'Orbitron', sans-serif",
+    googleFont: 'Orbitron',
+    sample: 'CYBERPUNK',
+    category: 'Sci-Fi',
+    weight: '700',
+    letterSpacing: '1.5px',
+    textShadow: '0 0 8px rgba(6, 182, 212, 0.9), 0 0 16px rgba(6, 182, 212, 0.4)',
+    description: 'Futuristic sci-fi display font with neon glow',
+  },
+  {
+    id: 'audiowide-tech',
+    name: 'Audiowide Mecha',
+    family: "'Audiowide', sans-serif",
+    googleFont: 'Audiowide',
+    sample: 'AUDIOWIDE',
+    category: 'Sci-Fi',
+    weight: 'normal',
+    letterSpacing: '1px',
+    textShadow: '0 0 6px rgba(168, 85, 247, 0.7)',
+    description: 'High-tech robotic display font',
+  },
+  {
+    id: 'neon-monoton',
+    name: 'Electric Neon Wire',
+    family: "'Monoton', cursive",
+    googleFont: 'Monoton',
+    sample: 'NEON',
+    category: 'Neon',
+    weight: 'normal',
+    letterSpacing: '2px',
+    textShadow: '0 0 10px rgba(244, 63, 94, 0.9), 0 0 20px rgba(244, 63, 94, 0.5)',
+    description: 'Multi-line luminous glowing neon wire tubes',
+  },
+  {
+    id: 'synthwave-righteous',
+    name: 'Synthwave 80s',
+    family: "'Righteous', cursive",
+    googleFont: 'Righteous',
+    sample: 'SYNTHWAVE',
+    category: 'Neon',
+    weight: 'normal',
+    letterSpacing: '1px',
+    textShadow: '0 0 6px rgba(236, 72, 153, 0.8)',
+    description: 'Outrun 80s synthwave aesthetic',
+  },
+  {
+    id: 'royal-script',
+    name: 'Royal Calligraphy',
+    family: "'Great Vibes', cursive",
+    googleFont: 'Great Vibes',
+    sample: 'Royal Calligraphy',
+    category: 'Script',
+    weight: 'normal',
+    letterSpacing: '1.5px',
+    textShadow: '0 0 8px rgba(234, 179, 8, 0.7)',
+    description: 'Elegant golden cursive calligraphy',
+  },
+  {
+    id: 'street-marker',
+    name: 'Street Marker',
+    family: "'Permanent Marker', cursive",
+    googleFont: 'Permanent Marker',
+    sample: 'STREET TAG',
+    category: 'Street',
+    weight: 'normal',
+    letterSpacing: '1px',
+    textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+    description: 'Bold urban graffiti marker tag',
+  },
+  {
+    id: 'hacker-terminal',
+    name: 'Hacker Terminal',
+    family: "'Share Tech Mono', 'Fira Code', monospace",
+    googleFont: 'Share Tech Mono',
+    sample: '$ matrix.init()',
+    category: 'Monospace',
+    weight: 'normal',
+    letterSpacing: '0.5px',
+    textShadow: '0 0 6px rgba(16, 185, 129, 0.9)',
+    description: 'Monospace cyber terminal console font',
+  },
+  {
+    id: 'bungee-pop',
+    name: 'Bungee Pop',
+    family: "'Bungee', cursive",
+    googleFont: 'Bungee',
+    sample: 'BUNGEE POP',
+    category: 'Playful',
+    weight: 'normal',
+    letterSpacing: '1px',
+    textShadow: '2px 2px 0px rgba(0,0,0,0.7)',
+    description: 'Thick billboard urban pop letters',
+  },
+  {
+    id: 'imperial-gold',
+    name: 'Imperial Gold',
+    family: "'Cinzel Decorative', serif",
+    googleFont: 'Cinzel Decorative',
+    sample: 'IMPERIAL',
+    category: 'Fantasy',
+    weight: '700',
+    letterSpacing: '1.5px',
+    textShadow: '0 0 8px rgba(234, 179, 8, 0.8)',
+    description: 'Ancient Roman imperial decorative serif',
+  },
+];
+
+export const PRESET_TEXT_GLOWS = [
+  { id: 'none', name: 'None', shadow: 'none' },
+  { id: 'ember', name: 'Entity Ember', shadow: '0 0 8px rgba(234, 88, 12, 0.9), 0 0 16px rgba(185, 28, 28, 0.6)' },
+  { id: 'neon-cyan', name: 'Cyber Neon Cyan', shadow: '0 0 8px rgba(6, 182, 212, 0.9), 0 0 16px rgba(6, 182, 212, 0.5)' },
+  { id: 'void-purple', name: 'Void Purple', shadow: '0 0 8px rgba(168, 85, 247, 0.9), 0 0 16px rgba(126, 34, 206, 0.5)' },
+  { id: 'matrix-green', name: 'Matrix Emerald', shadow: '0 0 8px rgba(16, 185, 129, 0.9), 0 0 16px rgba(5, 150, 105, 0.6)' },
+  { id: 'royal-gold', name: 'Imperial Gold', shadow: '0 0 8px rgba(234, 179, 8, 0.9), 0 0 16px rgba(202, 138, 4, 0.5)' },
+  { id: 'hot-pink', name: 'Synthwave Pink', shadow: '0 0 8px rgba(244, 63, 94, 0.9), 0 0 16px rgba(236, 72, 153, 0.6)' },
+];
+

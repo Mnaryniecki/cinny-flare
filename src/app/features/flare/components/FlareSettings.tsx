@@ -19,12 +19,15 @@ import {
   DEFAULT_FLARE,
   PRESET_DECORATIONS,
   PRESET_NAMEPLATES,
+  PRESET_FONTS,
+  PRESET_TEXT_GLOWS,
   PRESET_EFFECTS,
   PRESET_FRAMES,
   ProfileFlare,
   ShowcaseBoard,
 } from '../types';
 import { getUserFlare, saveUserFlare, uploadFlareMedia } from '../api';
+import { loadCustomFont, loadGoogleFont } from '../fontLoader';
 import { AvatarDecorationOverlay } from './AvatarDecorationOverlay';
 import { UserNameplate } from './UserNameplate';
 import { ProfileEffectOverlay } from './ProfileEffectOverlay';
@@ -35,7 +38,7 @@ type FlareSettingsProps = {
   requestClose: () => void;
 };
 
-type SettingTab = 'avatar' | 'nameplate' | 'effect' | 'frame' | 'banner' | 'bio' | 'boards';
+type SettingTab = 'avatar' | 'nameplate' | 'font' | 'effect' | 'frame' | 'banner' | 'bio' | 'boards';
 
 export function FlareSettings({ requestClose }: FlareSettingsProps) {
   const mx = useMatrixClient();
@@ -48,9 +51,11 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<SettingTab>('avatar');
+  const [googleFontInput, setGoogleFontInput] = useState('');
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const nameplateInputRef = useRef<HTMLInputElement>(null);
+  const fontInputRef = useRef<HTMLInputElement>(null);
   const effectInputRef = useRef<HTMLInputElement>(null);
   const frameInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -87,10 +92,10 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
     }
   };
 
-  // Upload handlers for each of the 4 customizable layers
+  // Upload handlers for each of the customizable layers
   const handleCustomUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    layer: 'avatar' | 'nameplate' | 'effect' | 'frame' | 'banner'
+    layer: 'avatar' | 'nameplate' | 'font' | 'effect' | 'frame' | 'banner'
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -116,6 +121,21 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
             ...prev.nameplate,
             url: mxc,
             preset: '',
+          },
+        }));
+      } else if (layer === 'font') {
+        const familyName = file.name.replace(/\.[^/.]+$/, '').trim();
+        const resolvedUrl = mxc.startsWith('mxc://') ? mxcUrlToHttp(mx, mxc, useAuth) : mxc;
+        if (resolvedUrl) {
+          loadCustomFont(familyName, resolvedUrl);
+        }
+        setFlare((prev) => ({
+          ...prev,
+          font: {
+            ...prev.font,
+            preset: 'custom',
+            family: familyName,
+            url: mxc,
           },
         }));
       } else if (layer === 'effect') {
@@ -205,6 +225,13 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
         onChange={(e) => handleCustomUpload(e, 'nameplate')}
       />
       <input
+        ref={fontInputRef}
+        type="file"
+        accept=".woff2,.woff,.ttf,.otf,font/*"
+        style={{ display: 'none' }}
+        onChange={(e) => handleCustomUpload(e, 'font')}
+      />
+      <input
         ref={effectInputRef}
         type="file"
         accept="image/*,video/mp4,video/webm"
@@ -280,17 +307,24 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               </Chip>
               <Chip
                 size="300"
+                variant={activeTab === 'font' ? 'Primary' : 'Surface'}
+                onClick={() => setActiveTab('font')}
+              >
+                <Text size="B200">3. Name Font & Glow</Text>
+              </Chip>
+              <Chip
+                size="300"
                 variant={activeTab === 'effect' ? 'Primary' : 'Surface'}
                 onClick={() => setActiveTab('effect')}
               >
-                <Text size="B200">3. Profile Effect</Text>
+                <Text size="B200">4. Profile Effect</Text>
               </Chip>
               <Chip
                 size="300"
                 variant={activeTab === 'frame' ? 'Primary' : 'Surface'}
                 onClick={() => setActiveTab('frame')}
               >
-                <Text size="B200">4. Profile Frame</Text>
+                <Text size="B200">5. Profile Frame</Text>
               </Chip>
               <Chip
                 size="300"
@@ -471,7 +505,251 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               </Box>
             )}
 
-            {/* TAB 3: PROFILE EFFECT */}
+            {/* TAB 3: NAME FONT & GLOW */}
+            {activeTab === 'font' && (
+              <Box direction="Column" gap="300">
+                <Box direction="Column" gap="100">
+                  <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
+                    Custom Display Name Font & Glow
+                  </Text>
+                  <Text size="L200" style={{ opacity: 0.6 }}>
+                    Give your username a unique typography style across all chat rooms, member lists, and profile cards!
+                  </Text>
+                </Box>
+
+                {/* Preset Fonts Grid */}
+                <Text size="L200" style={{ fontWeight: config.fontWeight.W700, marginTop: 4 }}>
+                  Font Presets (Discord Nitro Style)
+                </Text>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+                    gap: '12px',
+                  }}
+                >
+                  <div
+                    onClick={() =>
+                      setFlare((p) => ({
+                        ...p,
+                        font: { ...p.font, preset: '', family: '', url: '' },
+                      }))
+                    }
+                    style={{
+                      border: !flare.font?.preset && !flare.font?.family && !flare.font?.url
+                        ? '2px solid #ea580c'
+                        : '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      background: 'rgba(255, 255, 255, 0.03)',
+                    }}
+                  >
+                    <Text size="L200">Default System Font</Text>
+                  </div>
+
+                  {PRESET_FONTS.map((preset) => {
+                    const isSelected = flare.font?.preset === preset.id;
+                    return (
+                      <div
+                        key={preset.id}
+                        onClick={() =>
+                          setFlare((p) => ({
+                            ...p,
+                            font: {
+                              ...p.font,
+                              preset: preset.id,
+                              family: '',
+                              url: '',
+                              textShadow: p.font?.textShadow || preset.textShadow,
+                              weight: preset.weight,
+                              letterSpacing: preset.letterSpacing,
+                            },
+                          }))
+                        }
+                        style={{
+                          border: isSelected
+                            ? '2px solid #ea580c'
+                            : '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          background: isSelected ? 'rgba(234, 88, 12, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text size="L100" style={{ opacity: 0.6 }}>{preset.category}</Text>
+                          <Text size="L100" style={{ fontWeight: config.fontWeight.W700 }}>{preset.name}</Text>
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: preset.family,
+                            fontSize: '17px',
+                            letterSpacing: preset.letterSpacing,
+                            textShadow: preset.textShadow,
+                            textAlign: 'center',
+                            padding: '6px 0',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {profile.displayName || 'Username'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Upload and Webfont */}
+                <Box direction="Column" gap="200" style={{ marginTop: 8, padding: '14px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <Text size="T200" style={{ fontWeight: config.fontWeight.W700 }}>
+                    Upload Your Own Custom Font (.woff2, .woff, .ttf, .otf)
+                  </Text>
+                  <Text size="L100" style={{ opacity: 0.6 }}>
+                    Free for everyone! Upload any font file directly to Matrix so your friends see your name in your custom font.
+                  </Text>
+                  <Box gap="200" alignItems="Center" wrap="Wrap">
+                    <Button
+                      size="300"
+                      variant="Secondary"
+                      fill="Outline"
+                      radii="Pill"
+                      before={<Icon src={Icons.Photo} size="50" />}
+                      onClick={() => fontInputRef.current?.click()}
+                    >
+                      <Text size="B200">
+                        {flare.font?.preset === 'custom' && flare.font?.family
+                          ? `Font: ${flare.font.family} (Click to Change)`
+                          : 'Choose Font File (.woff2 / .ttf / .otf)'}
+                      </Text>
+                    </Button>
+                  </Box>
+
+                  {/* Or Google Font Name */}
+                  <Box direction="Column" gap="100" style={{ marginTop: 8 }}>
+                    <Text size="L100" style={{ opacity: 0.7 }}>Or Enter Any Google Font Family Name:</Text>
+                    <Box gap="200" alignItems="Center">
+                      <Input
+                        size="300"
+                        value={googleFontInput}
+                        onChange={(e) => setGoogleFontInput(e.target.value)}
+                        placeholder="e.g. Lobster, Pacifico, Satisfy, VT323"
+                        style={{ flex: 1 }}
+                      />
+                      <Button
+                        size="300"
+                        variant="Secondary"
+                        fill="Solid"
+                        radii="Pill"
+                        onClick={() => {
+                          if (googleFontInput.trim()) {
+                            loadGoogleFont(googleFontInput.trim());
+                            setFlare((p) => ({
+                              ...p,
+                              font: {
+                                ...p.font,
+                                preset: '',
+                                family: googleFontInput.trim(),
+                                url: '',
+                              },
+                            }));
+                          }
+                        }}
+                      >
+                        <Text size="B200">Apply</Text>
+                      </Button>
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Text Glow & Shadows */}
+                <Box direction="Column" gap="200" style={{ marginTop: 8 }}>
+                  <Text size="T200" style={{ fontWeight: config.fontWeight.W700 }}>
+                    Text Glow & Shadow Effects
+                  </Text>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
+                    {PRESET_TEXT_GLOWS.map((glow) => {
+                      const isSelected = flare.font?.textShadow === glow.shadow;
+                      return (
+                        <div
+                          key={glow.id}
+                          onClick={() =>
+                            setFlare((p) => ({
+                              ...p,
+                              font: { ...p.font, textShadow: glow.shadow },
+                            }))
+                          }
+                          style={{
+                            border: isSelected ? '2px solid #ea580c' : '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            background: isSelected ? 'rgba(234, 88, 12, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                          }}
+                        >
+                          <Text
+                            size="L100"
+                            style={{
+                              textShadow: glow.shadow !== 'none' ? glow.shadow : undefined,
+                              fontWeight: config.fontWeight.W700,
+                            }}
+                          >
+                            {glow.name}
+                          </Text>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Box>
+
+                {/* Typography Spacing & Capitalization */}
+                <Box gap="400" wrap="Wrap" style={{ marginTop: 8 }}>
+                  <Box direction="Column" gap="100" style={{ flex: '1 1 180px' }}>
+                    <Text size="L100" style={{ opacity: 0.7 }}>Letter Spacing:</Text>
+                    <Box gap="100">
+                      {['normal', '1px', '2px', '3px'].map((spacing) => (
+                        <Chip
+                          key={spacing}
+                          size="200"
+                          variant={(flare.font?.letterSpacing || 'normal') === spacing ? 'Primary' : 'Surface'}
+                          onClick={() => setFlare((p) => ({ ...p, font: { ...p.font, letterSpacing: spacing } }))}
+                        >
+                          <Text size="L100">{spacing}</Text>
+                        </Chip>
+                      ))}
+                    </Box>
+                  </Box>
+
+                  <Box direction="Column" gap="100" style={{ flex: '1 1 180px' }}>
+                    <Text size="L100" style={{ opacity: 0.7 }}>Transform:</Text>
+                    <Box gap="100">
+                      {[
+                        { id: 'none', label: 'Normal' },
+                        { id: 'uppercase', label: 'UPPER' },
+                        { id: 'capitalize', label: 'Caps' },
+                      ].map((t) => (
+                        <Chip
+                          key={t.id}
+                          size="200"
+                          variant={(flare.font?.textTransform || 'none') === t.id ? 'Primary' : 'Surface'}
+                          onClick={() => setFlare((p) => ({ ...p, font: { ...p.font, textTransform: t.id as any } }))}
+                        >
+                          <Text size="L100">{t.label}</Text>
+                        </Chip>
+                      ))}
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
+            {/* TAB 4: PROFILE EFFECT */}
             {activeTab === 'effect' && (
               <Box direction="Column" gap="300">
                 <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
@@ -537,7 +815,7 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               </Box>
             )}
 
-            {/* TAB 4: PROFILE CARD FRAME */}
+            {/* TAB 5: PROFILE CARD FRAME */}
             {activeTab === 'frame' && (
               <Box direction="Column" gap="300">
                 <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
@@ -765,9 +1043,9 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                     <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
                   </div>
 
-                  {/* 2. Custom Nameplate */}
+                  {/* 2. Custom Nameplate & Font */}
                   <div style={{ marginTop: 12 }}>
-                    <UserNameplate nameplate={flare.nameplate}>
+                    <UserNameplate nameplate={flare.nameplate} font={flare.font}>
                       <Text size="H400" style={{ fontWeight: config.fontWeight.W700 }}>
                         {profile.displayName || myUserId}
                       </Text>

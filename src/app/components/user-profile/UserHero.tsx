@@ -121,7 +121,7 @@ export function UserHeroName({ displayName, userId, flare }: UserHeroNameProps) 
   return (
     <Box grow="Yes" direction="Column" gap="0">
       <Box alignItems="Baseline" gap="200" wrap="Wrap">
-        <UserNameplate nameplate={flare?.nameplate}>
+        <UserNameplate nameplate={flare?.nameplate} font={flare?.font}>
           <Text
             size="H4"
             className={classNames(BreakWord, LineClamp3)}

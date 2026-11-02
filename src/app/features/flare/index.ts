@@ -7,3 +7,4 @@ export * from './components/ProfileEffectOverlay';
 export * from './components/ProfileCardFrameWrapper';
 export * from './components/FlareProfileBoard';
 export * from './components/FlareSettings';
+export * from './fontLoader';
