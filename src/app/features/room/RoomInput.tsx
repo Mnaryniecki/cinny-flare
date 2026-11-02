@@ -108,6 +108,7 @@ import { ReplyLayout, ThreadIndicator } from '../../components/message';
 import { roomToParentsAtom } from '../../state/room/roomToParents';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { useImagePackRooms } from '../../hooks/useImagePackRooms';
+import { attachFlareToMessageContent } from '../flare';
 import { usePowerLevelsContext } from '../../hooks/usePowerLevels';
 import colorMXID from '../../../util/colorMXID';
 import { useIsDirectRoom } from '../../hooks/useRoom';
@@ -293,7 +294,10 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
       });
       handleCancelUpload(uploads);
       const contents = fulfilledPromiseSettledResult(await Promise.allSettled(contentsPromises));
-      contents.forEach((content) => mx.sendMessage(roomId, content as any));
+      contents.forEach((content) => {
+        attachFlareToMessageContent(mx, content);
+        mx.sendMessage(roomId, content as any);
+      });
     };
 
     const submit = useCallback(() => {
@@ -372,6 +376,7 @@ export const RoomInput = forwardRef<HTMLDivElement, RoomInputProps>(
           content['m.relates_to'].is_falling_back = false;
         }
       }
+      attachFlareToMessageContent(mx, content);
       mx.sendMessage(roomId, content as any);
       resetEditor(editor);
       resetEditorHistory(editor);

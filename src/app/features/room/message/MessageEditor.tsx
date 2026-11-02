@@ -45,6 +45,7 @@ import {
   useEditor,
   getMentions,
 } from '../../../components/editor';
+import { attachFlareToMessageContent } from '../../flare';
 import { useSetting } from '../../../state/hooks/settings';
 import { settingsAtom } from '../../../state/settings';
 import { UseStateProvider } from '../../../components/UseStateProvider';
@@ -153,6 +154,7 @@ export const MessageEditor = as<'div', MessageEditorProps>(
           },
         };
 
+        attachFlareToMessageContent(mx, content);
         return mx.sendMessage(roomId, content);
       }, [mx, editor, roomId, mEvent, isMarkdown, getPrevBodyAndFormattedBody])
     );

@@ -10,4 +10,5 @@ export * from './components/FlareSettings';
 export * from './components/UserDisplayName';
 export * from './components/DisplayNameStyleModal';
 export * from './components/CardGradientPicker';
+export * from './components/FlareSyncFeature';
 export * from './fontLoader';

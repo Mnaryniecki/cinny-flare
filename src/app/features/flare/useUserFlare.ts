@@ -1,12 +1,28 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { ProfileFlare } from './types';
-import { getUserFlare, FLARE_UPDATE_EVENT, FLARE_ACCOUNT_DATA_EVENT } from './api';
+import {
+  getUserFlare,
+  getCachedUserFlare,
+  FLARE_UPDATE_EVENT,
+  FLARE_ACCOUNT_DATA_EVENT,
+} from './api';
 
 export function useUserFlare(userId?: string) {
   const mx = useMatrixClient();
-  const [flare, setFlare] = useState<ProfileFlare | null>(null);
+  const [flare, setFlare] = useState<ProfileFlare | null>(() =>
+    userId ? getCachedUserFlare(userId) : null
+  );
   const [loading, setLoading] = useState(false);
+
+  // Sync state if userId changes
+  useEffect(() => {
+    if (userId) {
+      setFlare(getCachedUserFlare(userId));
+    } else {
+      setFlare(null);
+    }
+  }, [userId]);
 
   const fetchFlare = useCallback(
     async (force = false) => {
@@ -14,9 +30,11 @@ export function useUserFlare(userId?: string) {
       setLoading(true);
       try {
         const data = await getUserFlare(mx, userId, force);
-        setFlare(data);
+        if (data) {
+          setFlare(data);
+        }
       } catch {
-        // Ignore error, fallback to null
+        // Ignore error, fallback to current or null
       } finally {
         setLoading(false);
       }

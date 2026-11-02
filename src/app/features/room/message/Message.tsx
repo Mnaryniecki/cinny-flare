@@ -722,7 +722,9 @@ export const Message = as<'div', MessageProps>(
     const mx = useMatrixClient();
     const useAuthentication = useMediaAuthentication();
     const senderId = mEvent.getSender() ?? '';
-    const { flare } = useUserFlare(senderId);
+    const { flare: fetchedFlare } = useUserFlare(senderId);
+    const eventFlare = mEvent.getContent()?.['app.cinny.flare'];
+    const flare = fetchedFlare || (eventFlare && typeof eventFlare === 'object' ? eventFlare : null);
 
     const [hover, setHover] = useState(false);
     const { hoverProps } = useHover({ onHoverChange: setHover });
