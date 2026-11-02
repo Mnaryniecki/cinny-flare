@@ -13,13 +13,21 @@ export function ProfileEffectOverlay({ effect, forcePlay }: ProfileEffectOverlay
   const mx = useMatrixClient();
   const useAuth = useMediaAuthentication();
   const [isPlaying, setIsPlaying] = useState(true);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
-  // Profile effects in Discord run once upon opening/hover, then stop
+  // Profile effects run once upon opening/hover, strictly under 5 seconds, then stop
   useEffect(() => {
     setIsPlaying(true);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
     const timer = setTimeout(() => {
       setIsPlaying(false);
-    }, 3800); // stops after 3.8s
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    }, 4200); // stops at 4.2 seconds (strictly under 5s)
     return () => clearTimeout(timer);
   }, [effect?.preset, effect?.url, forcePlay]);
 
@@ -36,7 +44,13 @@ export function ProfileEffectOverlay({ effect, forcePlay }: ProfileEffectOverlay
 
   return (
     <div
-      onMouseEnter={() => setIsPlaying(true)}
+      onMouseEnter={() => {
+        setIsPlaying(true);
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+          videoRef.current.play().catch(() => {});
+        }
+      }}
       style={{
         position: 'absolute',
         inset: '-20px',
@@ -44,9 +58,10 @@ export function ProfileEffectOverlay({ effect, forcePlay }: ProfileEffectOverlay
         zIndex: 10,
         overflow: 'hidden',
         borderRadius: '20px',
-        opacity: isPlaying ? 1 : 0.15, // Temporary animation that stops and fades to subtle resting glow
+        opacity: isPlaying ? 1 : 0.08, // Fades down so it doesn't obscure profile
         transform: isPlaying ? 'scale(1)' : 'scale(0.98)',
-        transition: 'opacity 1.2s ease-out, transform 1.2s ease-out',
+        transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+        animationPlayState: isPlaying ? 'running' : 'paused',
       }}
     >
       {preset ? (
@@ -57,6 +72,7 @@ export function ProfileEffectOverlay({ effect, forcePlay }: ProfileEffectOverlay
       ) : mediaUrl ? (
         mediaUrl.endsWith('.mp4') || mediaUrl.endsWith('.webm') ? (
           <video
+            ref={videoRef}
             src={mediaUrl}
             autoPlay
             muted

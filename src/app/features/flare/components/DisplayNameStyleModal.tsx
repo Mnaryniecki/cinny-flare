@@ -323,9 +323,21 @@ export function DisplayNameStyleModal({
                       cursor: 'pointer',
                       position: 'relative',
                     }}
-                    title="Custom Color"
+                    title="Custom Color Picker"
                   >
-                    <Icon size="50" src={Icons.EyeDropper} />
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m14 7 3 3m-9 9-4 1 1-4 10-10a2.828 2.828 0 1 1 4 4L6 17Z" />
+                      <path d="m16 5 3 3" />
+                    </svg>
                     <input
                       type="color"
                       value={style.color || '#22c55e'}

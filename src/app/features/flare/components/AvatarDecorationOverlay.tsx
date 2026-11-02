@@ -80,13 +80,13 @@ export function AvatarDecorationOverlay({
           50% { transform: translate(-50%, calc(-50% - 3px)); }
         }
         .cinny-flare-spin {
-          animation: cinnyFlareSpin 8s linear infinite !important;
+          animation: cinnyFlareSpin 3.5s linear infinite !important;
         }
         .cinny-flare-pulse {
-          animation: cinnyFlarePulse 3s ease-in-out infinite !important;
+          animation: cinnyFlarePulse 2.8s ease-in-out infinite !important;
         }
         .cinny-flare-float {
-          animation: cinnyFlareFloat 2.5s ease-in-out infinite !important;
+          animation: cinnyFlareFloat 2.2s ease-in-out infinite !important;
         }
       `}</style>
       <div

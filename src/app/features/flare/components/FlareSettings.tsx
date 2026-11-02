@@ -38,6 +38,7 @@ import { DisplayNameStyleModal } from './DisplayNameStyleModal';
 import { ProfileEffectOverlay } from './ProfileEffectOverlay';
 import { ProfileCardFrameWrapper } from './ProfileCardFrameWrapper';
 import { FlareProfileBoard } from './FlareProfileBoard';
+import { CardGradientPicker } from './CardGradientPicker';
 
 type FlareSettingsProps = {
   requestClose: () => void;
@@ -736,9 +737,46 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Text size="L100" style={{ color: '#dbdee1' }}>
-                    Banner Presets:
+                    Banner Color Picker & Presets:
                   </Text>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {/* Custom Banner Color Picker */}
+                    <label
+                      style={{
+                        position: 'relative',
+                        width: 44,
+                        height: 32,
+                        borderRadius: '6px',
+                        background: flare.banner?.themeColor || '#76c800',
+                        border: '2px solid #fff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                      }}
+                      title="Pick Custom Banner Color"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                        <path d="m14 7 3 3m-9 9-4 1 1-4 10-10a2.828 2.828 0 1 1 4 4L6 17Z" />
+                      </svg>
+                      <input
+                        type="color"
+                        value={flare.banner?.themeColor || '#76c800'}
+                        onChange={(e) =>
+                          setFlare((p) => ({
+                            ...p,
+                            banner: {
+                              type: 'solid',
+                              themeColor: e.target.value,
+                              gradient: `linear-gradient(135deg, ${e.target.value} 0%, rgba(0,0,0,0.6) 100%)`,
+                              url: '',
+                            },
+                          }))
+                        }
+                        style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }}
+                      />
+                    </label>
                     {[
                       { name: 'Neon Lime (Discord)', color: '#76c800', grad: 'linear-gradient(135deg, #76c800 0%, #4d8800 100%)' },
                       { name: 'Entity Crimson', color: '#dc2626', grad: 'linear-gradient(135deg, #450a0a 0%, #991b1b 100%)' },
@@ -817,7 +855,9 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                       CARD THEME (GRADIENT)
                     </Text>
                     <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }} truncate>
-                      {activeCardTheme ? activeCardTheme.name : 'Custom Gradient'}
+                      {flare.cardTheme?.primaryColor
+                        ? `${flare.cardTheme.primaryColor} → ${flare.cardTheme.accentColor}`
+                        : 'Custom Gradient'}
                     </Text>
                   </Box>
                 </Box>
@@ -837,48 +877,15 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Text size="L100" style={{ color: '#dbdee1' }}>
-                    Vesktop / Discord Profile Gradients:
-                  </Text>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                      gap: '8px',
-                    }}
-                  >
-                    {PRESET_CARD_THEMES.map((theme) => (
-                      <div
-                        key={theme.id}
-                        onClick={() =>
-                          setFlare((p) => ({
-                            ...p,
-                            cardTheme: {
-                              preset: theme.id,
-                              gradient: theme.gradient,
-                              primaryColor: theme.primaryColor,
-                              accentColor: theme.accentColor,
-                            },
-                          }))
-                        }
-                        style={{
-                          padding: '10px',
-                          borderRadius: '6px',
-                          background: theme.gradient,
-                          border:
-                            flare.cardTheme?.preset === theme.id
-                              ? '2px solid #ea580c'
-                              : '1px solid rgba(255,255,255,0.1)',
-                          textAlign: 'center',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Text size="L100" style={{ fontWeight: 700, color: '#fff' }}>
-                          {theme.name}
-                        </Text>
-                      </div>
-                    ))}
-                  </div>
+                  <CardGradientPicker
+                    theme={flare.cardTheme}
+                    onChange={(updated) =>
+                      setFlare((p) => ({
+                        ...p,
+                        cardTheme: updated,
+                      }))
+                    }
+                  />
                 </Box>
               )}
             </div>
