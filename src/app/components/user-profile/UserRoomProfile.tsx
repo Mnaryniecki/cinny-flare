@@ -27,6 +27,7 @@ import {
   FlareProfileBoard,
   ProfileCardFrameWrapper,
   ProfileEffectOverlay,
+  FlareSettings,
 } from '../../features/flare';
 
 type UserRoomProfileProps = {
@@ -35,6 +36,7 @@ type UserRoomProfileProps = {
 export function UserRoomProfile({ userId }: UserRoomProfileProps) {
   const mx = useMatrixClient();
   const { flare } = useUserFlare(userId);
+  const [isEditing, setIsEditing] = React.useState(false);
   const useAuthentication = useMediaAuthentication();
   const navigate = useNavigate();
   const closeUserRoomProfile = useCloseUserRoomProfile();
@@ -74,9 +76,24 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
     navigate(withSearchParam(getDirectCreatePath(), directSearchParam));
   };
 
+  if (isEditing) {
+    return (
+      <div style={{ width: '100%', minWidth: 320, maxWidth: 640 }}>
+        <FlareSettings requestClose={() => setIsEditing(false)} />
+      </div>
+    );
+  }
+
   return (
     <ProfileCardFrameWrapper frame={flare?.profileFrame}>
-      <div style={{ position: 'relative' }}>
+      <div
+        style={{
+          position: 'relative',
+          background: flare?.cardTheme?.gradient || undefined,
+          borderRadius: '16px',
+          overflow: 'hidden',
+        }}
+      >
         <ProfileEffectOverlay effect={flare?.profileEffect} />
         <Box direction="Column">
           <UserHero
@@ -87,9 +104,9 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
           />
           <Box direction="Column" gap="500" style={{ padding: config.space.S400 }}>
             <Box direction="Column" gap="400">
-              <Box gap="400" alignItems="Start">
+              <Box gap="400" alignItems="Start" justifyContent="SpaceBetween">
                 <UserHeroName displayName={displayName} userId={userId} flare={flare} />
-                {userId !== myUserId && (
+                {userId !== myUserId ? (
                   <Box shrink="No">
                     <Button
                       size="300"
@@ -100,6 +117,19 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
                       onClick={handleMessage}
                     >
                       <Text size="B300">Message</Text>
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box shrink="No">
+                    <Button
+                      size="300"
+                      variant="Primary"
+                      fill="Solid"
+                      radii="300"
+                      before={<Icon size="50" src={Icons.Pencil} filled />}
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Text size="B300">Edit Profile & Flair</Text>
                     </Button>
                   </Box>
                 )}

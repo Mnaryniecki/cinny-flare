@@ -62,13 +62,8 @@ const useSettingsMenuItems = (): SettingsMenuItem[] =>
       },
       {
         page: SettingsPages.AccountPage,
-        name: 'Account',
+        name: 'Profile & Account',
         icon: Icons.User,
-      },
-      {
-        page: SettingsPages.ProfileFlarePage,
-        name: 'Profile Flair',
-        icon: Icons.Star,
       },
       {
         page: SettingsPages.NotificationPage,
@@ -221,9 +216,6 @@ export function Settings({ initialPage, requestClose }: SettingsProps) {
         <General requestClose={handlePageRequestClose} />
       )}
       {activePage === SettingsPages.AccountPage && (
-        <Account requestClose={handlePageRequestClose} />
-      )}
-      {activePage === SettingsPages.ProfileFlarePage && (
         <FlareSettings requestClose={handlePageRequestClose} />
       )}
       {activePage === SettingsPages.NotificationPage && (

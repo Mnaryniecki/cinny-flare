@@ -14,7 +14,9 @@ import {
 import { useMatrixClient } from '../../../hooks/useMatrixClient';
 import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
 import { useUserProfile } from '../../../hooks/useUserProfile';
-import { mxcUrlToHttp } from '../../../utils/matrix';
+import { mxcUrlToHttp, getMxIdLocalPart } from '../../../utils/matrix';
+import { nameInitials } from '../../../utils/common';
+import { UserAvatar } from '../../../components/user-avatar';
 import {
   DEFAULT_FLARE,
   PRESET_DECORATIONS,
@@ -23,6 +25,7 @@ import {
   PRESET_TEXT_GLOWS,
   PRESET_EFFECTS,
   PRESET_FRAMES,
+  PRESET_CARD_THEMES,
   ProfileFlare,
   ShowcaseBoard,
 } from '../types';
@@ -30,6 +33,8 @@ import { getUserFlare, saveUserFlare, uploadFlareMedia } from '../api';
 import { loadCustomFont, loadGoogleFont } from '../fontLoader';
 import { AvatarDecorationOverlay } from './AvatarDecorationOverlay';
 import { UserNameplate } from './UserNameplate';
+import { UserDisplayName } from './UserDisplayName';
+import { DisplayNameStyleModal } from './DisplayNameStyleModal';
 import { ProfileEffectOverlay } from './ProfileEffectOverlay';
 import { ProfileCardFrameWrapper } from './ProfileCardFrameWrapper';
 import { FlareProfileBoard } from './FlareProfileBoard';
@@ -38,7 +43,15 @@ type FlareSettingsProps = {
   requestClose: () => void;
 };
 
-type SettingTab = 'avatar' | 'nameplate' | 'font' | 'effect' | 'frame' | 'banner' | 'bio' | 'boards';
+type ActiveSection =
+  | 'nameplate'
+  | 'avatar'
+  | 'banner'
+  | 'theme'
+  | 'effectFrame'
+  | 'font'
+  | 'bioBoards'
+  | null;
 
 export function FlareSettings({ requestClose }: FlareSettingsProps) {
   const mx = useMatrixClient();
@@ -50,8 +63,10 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<SettingTab>('avatar');
+  const [activeSection, setActiveSection] = useState<ActiveSection>('font');
   const [googleFontInput, setGoogleFontInput] = useState('');
+  const [replayEffectKey, setReplayEffectKey] = useState(0);
+  const [showDisplayNameModal, setShowDisplayNameModal] = useState(false);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const nameplateInputRef = useRef<HTMLInputElement>(null);
@@ -65,7 +80,14 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
     let isMounted = true;
     getUserFlare(mx, myUserId).then((data) => {
       if (isMounted) {
-        if (data) setFlare(data);
+        if (data) {
+          setFlare((prev) => ({
+            ...prev,
+            ...data,
+            cardTheme: data.cardTheme || prev.cardTheme || DEFAULT_FLARE.cardTheme,
+            banner: data.banner || prev.banner || DEFAULT_FLARE.banner,
+          }));
+        }
         setLoading(false);
       }
     });
@@ -74,8 +96,9 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
     };
   }, [mx, myUserId]);
 
+  const displayName = profile.displayName || getMxIdLocalPart(myUserId) || myUserId;
   const avatarUrl = profile.avatarUrl
-    ? mxcUrlToHttp(mx, profile.avatarUrl, useAuth) ?? undefined
+    ? mxcUrlToHttp(mx, profile.avatarUrl, useAuth, 96, 96, 'crop') ?? undefined
     : undefined;
 
   const handleSave = async () => {
@@ -92,7 +115,6 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
     }
   };
 
-  // Upload handlers for each of the customizable layers
   const handleCustomUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     layer: 'avatar' | 'nameplate' | 'font' | 'effect' | 'frame' | 'banner'
@@ -147,6 +169,7 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
             preset: '',
           },
         }));
+        setReplayEffectKey((k) => k + 1);
       } else if (layer === 'frame') {
         setFlare((prev) => ({
           ...prev,
@@ -162,7 +185,7 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
           banner: {
             type: file.type.startsWith('video/') ? 'video' : 'image',
             url: mxc,
-            themeColor: prev.banner?.themeColor || '#7b2cbf',
+            themeColor: prev.banner?.themeColor || '#76c800',
           },
         }));
       }
@@ -175,20 +198,20 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
   const handleAddSampleBoard = () => {
     const sampleBoard: ShowcaseBoard = {
       id: `board_${Date.now()}`,
-      title: 'Games in Rotation',
+      title: 'Marvel Rivals & Gaming',
       type: 'cards',
       items: [
         {
           id: `item_1`,
-          title: 'Dead by Daylight',
-          subtitle: 'Survivor Main',
-          tags: ['Obsessed', 'Looping'],
+          title: 'Marvel Rivals',
+          subtitle: 'Top Hero: Thor | 30 Matches',
+          tags: ['Obsessed', 'Competitive'],
         },
         {
           id: `item_2`,
-          title: 'Rainbow Six Siege',
-          subtitle: 'Rank: Platinum',
-          tags: ['Competitive'],
+          title: 'Deep Rock Galactic',
+          subtitle: 'Rock and Stone!',
+          tags: ['Co-Op', 'Favorite Game'],
         },
       ],
     };
@@ -202,14 +225,22 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
   if (loading) {
     return (
       <Box style={{ padding: config.space.S400 }} justifyContent="Center">
-        <Text size="T300">Loading profile flair...</Text>
+        <Text size="T300">Loading profile...</Text>
       </Box>
     );
   }
 
+  // Active decoration/nameplate/effect/frame for previews
+  const activeDecoration = flare.avatarDecoration?.url;
+  const activeNameplatePreset = PRESET_NAMEPLATES.find((p) => p.id === flare.nameplate?.preset);
+  const activeFontPreset = PRESET_FONTS.find((f) => f.id === flare.font?.preset);
+  const activeEffectPreset = PRESET_EFFECTS.find((p) => p.id === flare.profileEffect?.preset);
+  const activeFramePreset = PRESET_FRAMES.find((p) => p.id === flare.profileFrame?.preset);
+  const activeCardTheme = PRESET_CARD_THEMES.find((t) => t.id === flare.cardTheme?.preset);
+
   return (
-    <Box direction="Column" style={{ width: '100%', height: '100%' }}>
-      {/* Hidden file inputs for all 4 customizable layers + banner */}
+    <Box direction="Column" style={{ width: '100%', height: '100%', background: '#111214' }}>
+      {/* Hidden file inputs */}
       <input
         ref={avatarInputRef}
         type="file"
@@ -253,21 +284,34 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
         onChange={(e) => handleCustomUpload(e, 'banner')}
       />
 
-      {/* Header */}
+      {/* Top Header - Discord Style */}
       <Header
         size="500"
-        style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', padding: '12px 20px' }}
+        style={{
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          padding: '14px 24px',
+          background: '#1e1f22',
+        }}
       >
         <Box justifyContent="SpaceBetween" alignItems="Center" style={{ width: '100%' }}>
           <Box alignItems="Center" gap="200">
-            <Icon size="200" src={Icons.Star} />
-            <Text size="H400" style={{ fontWeight: config.fontWeight.W700 }}>
-              Profile Flair & Bundle Studio
+            <Icon size="200" src={Icons.User} />
+            <Text size="H400" style={{ fontWeight: config.fontWeight.W700, color: '#f2f3f5' }}>
+              Main Profile
             </Text>
           </Box>
-          <Box alignItems="Center" gap="200">
+          <Box alignItems="Center" gap="300">
             {saveStatus && (
-              <Text size="T200" style={{ color: saveStatus.includes('failed') || saveStatus.includes('Failed') ? '#ef4444' : '#10b981' }}>
+              <Text
+                size="T200"
+                style={{
+                  color:
+                    saveStatus.includes('failed') || saveStatus.includes('Failed')
+                      ? '#ef4444'
+                      : '#22c55e',
+                  fontWeight: config.fontWeight.W600,
+                }}
+              >
                 {saveStatus}
               </Text>
             )}
@@ -279,218 +323,195 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               disabled={saving}
               onClick={handleSave}
             >
-              <Text size="B300">{saving ? 'Saving...' : 'Save Changes'}</Text>
+              <Text size="B300" style={{ fontWeight: config.fontWeight.W700 }}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Text>
+            </Button>
+            <Button size="300" variant="Surface" fill="None" radii="Pill" onClick={requestClose}>
+              <Icon src={Icons.Cross} size="100" />
             </Button>
           </Box>
         </Box>
       </Header>
 
-      <Scroll style={{ flex: 1, padding: '20px' }}>
-        <Box gap="600" wrap="Wrap" style={{ maxWidth: 1100, margin: '0 auto' }}>
-          {/* Left: Customization Tabs and Controls */}
-          <Box direction="Column" gap="400" style={{ flex: '1 1 500px', minWidth: 320 }}>
-            {/* The 4 Core Flair Tabs + Extras */}
-            <Box gap="150" wrap="Wrap">
-              <Chip
-                size="300"
-                variant={activeTab === 'avatar' ? 'Primary' : 'Surface'}
-                onClick={() => setActiveTab('avatar')}
-              >
-                <Text size="B200">1. Avatar Decoration</Text>
-              </Chip>
-              <Chip
-                size="300"
-                variant={activeTab === 'nameplate' ? 'Primary' : 'Surface'}
-                onClick={() => setActiveTab('nameplate')}
-              >
-                <Text size="B200">2. Nameplate</Text>
-              </Chip>
-              <Chip
-                size="300"
-                variant={activeTab === 'font' ? 'Primary' : 'Surface'}
-                onClick={() => setActiveTab('font')}
-              >
-                <Text size="B200">3. Name Font & Glow</Text>
-              </Chip>
-              <Chip
-                size="300"
-                variant={activeTab === 'effect' ? 'Primary' : 'Surface'}
-                onClick={() => setActiveTab('effect')}
-              >
-                <Text size="B200">4. Profile Effect</Text>
-              </Chip>
-              <Chip
-                size="300"
-                variant={activeTab === 'frame' ? 'Primary' : 'Surface'}
-                onClick={() => setActiveTab('frame')}
-              >
-                <Text size="B200">5. Profile Frame</Text>
-              </Chip>
-              <Chip
-                size="300"
-                variant={activeTab === 'banner' ? 'Primary' : 'Surface'}
-                onClick={() => setActiveTab('banner')}
-              >
-                <Text size="B200">Banner</Text>
-              </Chip>
-              <Chip
-                size="300"
-                variant={activeTab === 'boards' ? 'Primary' : 'Surface'}
-                onClick={() => setActiveTab('boards')}
-              >
-                <Text size="B200">Showcase Boards</Text>
-              </Chip>
-            </Box>
+      <Scroll style={{ flex: 1, padding: '24px' }}>
+        <Box
+          gap="600"
+          wrap="Wrap"
+          style={{ maxWidth: 1180, margin: '0 auto', alignItems: 'flex-start' }}
+        >
+          {/* ========================================================= */}
+          {/* LEFT COLUMN: DISCORD-STYLE EDIT PROFILE SIDEBAR PANEL       */}
+          {/* ========================================================= */}
+          <Box
+            direction="Column"
+            gap="300"
+            style={{
+              flex: '1 1 340px',
+              minWidth: 310,
+              maxWidth: 420,
+              background: '#1e1f22',
+              borderRadius: '16px',
+              padding: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+            }}
+          >
+            <Text
+              size="L200"
+              style={{
+                textTransform: 'uppercase',
+                fontWeight: config.fontWeight.W700,
+                color: '#949ba4',
+                letterSpacing: '0.5px',
+                marginBottom: 4,
+              }}
+            >
+              Customization Options
+            </Text>
 
-            {/* TAB 1: AVATAR DECORATION */}
-            {activeTab === 'avatar' && (
-              <Box direction="Column" gap="300">
-                <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
-                  Avatar Circular Decoration
-                </Text>
-                <div
+            {/* 1. DISPLAY NAME STYLE */}
+            <div
+              style={{
+                background: '#2b2d31',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '14px',
+              }}
+            >
+              <Box justifyContent="SpaceBetween" alignItems="Center">
+                <Box direction="Column" gap="50">
+                  <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
+                    DISPLAY NAME STYLE
+                  </Text>
+                  <div style={{ marginTop: 2 }}>
+                    <UserDisplayName style={flare.displayNameStyle || flare.font}>
+                      <Text size="T300" style={{ fontWeight: config.fontWeight.W700 }}>
+                        {displayName}
+                      </Text>
+                    </UserDisplayName>
+                  </div>
+                </Box>
+                <Button
+                  size="300"
+                  variant="Primary"
+                  fill="Solid"
+                  radii="Pill"
+                  onClick={() => setShowDisplayNameModal(true)}
+                >
+                  <Text size="B200">Change Style</Text>
+                </Button>
+              </Box>
+            </div>
+
+            {/* 2. NAMEPLATE (SERVER MEMBER LIST) */}
+            <div
+              style={{
+                background:
+                  activeSection === 'nameplate' ? 'rgba(234, 88, 12, 0.12)' : '#2b2d31',
+                border:
+                  activeSection === 'nameplate'
+                    ? '1.5px solid #ea580c'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '14px',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveSection(activeSection === 'nameplate' ? null : 'nameplate')}
+            >
+              <Box justifyContent="SpaceBetween" alignItems="Center">
+                <Box direction="Column" gap="100">
+                  <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
+                    NAMEPLATE (SERVER MEMBER LIST)
+                  </Text>
+                  {/* Miniature member list tile preview with the nameplate banner! */}
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background: flare.nameplate?.url
+                        ? `url(${mxcUrlToHttp(mx, flare.nameplate.url, useAuth)}) center/cover`
+                        : activeNameplatePreset?.gradient || '#1e1f22',
+                      border: activeNameplatePreset?.border || '1px solid rgba(255,255,255,0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: 200,
+                    }}
+                  >
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#ff7b72', flexShrink: 0 }} />
+                    <Text size="L100" style={{ fontWeight: 700, color: '#ffffff' }}>
+                      {displayName}
+                    </Text>
+                  </div>
+                </Box>
+                <Chip size="200" variant={activeSection === 'nameplate' ? 'Primary' : 'Surface'}>
+                  <Text size="L100">{activeSection === 'nameplate' ? 'Close' : 'Choose'}</Text>
+                </Chip>
+              </Box>
+
+              {activeSection === 'nameplate' && (
+                <Box
+                  direction="Column"
+                  gap="300"
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                    gap: '12px',
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div
-                    onClick={() =>
-                      setFlare((p) => ({
-                        ...p,
-                        avatarDecoration: { ...p.avatarDecoration, url: '' },
-                      }))
-                    }
                     style={{
-                      border: !flare.avatarDecoration?.url
-                        ? '2px solid #ea580c'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      padding: '12px 8px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      background: 'rgba(255, 255, 255, 0.03)',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                      gap: '8px',
                     }}
                   >
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', border: '1px dashed #666' }} />
-                    <Text size="L100" style={{ marginTop: 8 }}>None</Text>
-                  </div>
-
-                  {PRESET_DECORATIONS.map((preset) => {
-                    const isSelected = flare.avatarDecoration?.url === preset.id;
-                    return (
+                    <div
+                      onClick={() =>
+                        setFlare((p) => ({ ...p, nameplate: { preset: '', url: '' } }))
+                      }
+                      style={{
+                        padding: '10px',
+                        borderRadius: '6px',
+                        border:
+                          !flare.nameplate?.preset && !flare.nameplate?.url
+                            ? '2px solid #ea580c'
+                            : '1px solid rgba(255,255,255,0.08)',
+                        background: '#1e1f22',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Text size="L100">None</Text>
+                    </div>
+                    {PRESET_NAMEPLATES.map((p) => (
                       <div
-                        key={preset.id}
+                        key={p.id}
                         onClick={() =>
-                          setFlare((p) => ({
-                            ...p,
-                            avatarDecoration: {
-                              url: preset.id,
-                              glowColor: preset.glowColor,
-                              animation: preset.animation,
-                              scale: 1.18,
-                            },
+                          setFlare((prev) => ({
+                            ...prev,
+                            nameplate: { preset: p.id, gradient: p.gradient, textColor: p.textColor },
                           }))
                         }
                         style={{
-                          border: isSelected
-                            ? '2px solid #ea580c'
-                            : '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '8px',
-                          padding: '12px 8px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
+                          padding: '10px',
+                          borderRadius: '6px',
+                          background: p.gradient,
+                          border:
+                            flare.nameplate?.preset === p.id
+                              ? '2px solid #ea580c'
+                              : '1px solid rgba(255,255,255,0.08)',
+                          textAlign: 'center',
                           cursor: 'pointer',
-                          background: isSelected ? 'rgba(234, 88, 12, 0.15)' : 'rgba(255, 255, 255, 0.03)',
                         }}
                       >
-                        <div
-                          style={{ width: 44, height: 44 }}
-                          dangerouslySetInnerHTML={{ __html: preset.svg }}
-                        />
-                        <Text size="L100" style={{ marginTop: 8, textAlign: 'center' }}>
-                          {preset.name}
+                        <Text size="L100" style={{ color: p.textColor, fontWeight: 700 }}>
+                          {p.name}
                         </Text>
                       </div>
-                    );
-                  })}
-                </div>
-
-                <Box gap="200" alignItems="Center">
-                  <Button
-                    size="300"
-                    variant="Secondary"
-                    fill="Outline"
-                    radii="Pill"
-                    before={<Icon src={Icons.Photo} size="50" />}
-                    onClick={() => avatarInputRef.current?.click()}
-                  >
-                    <Text size="B200">Upload Custom Avatar Frame (APNG/WebP/GIF)</Text>
-                  </Button>
-                </Box>
-              </Box>
-            )}
-
-            {/* TAB 2: NAMEPLATE */}
-            {activeTab === 'nameplate' && (
-              <Box direction="Column" gap="300">
-                <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
-                  Custom Nameplate (Username Banner in Chat & Member List)
-                </Text>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-                  <div
-                    onClick={() => setFlare((p) => ({ ...p, nameplate: { preset: '', url: '' } }))}
-                    style={{
-                      border: !flare.nameplate?.preset && !flare.nameplate?.url
-                        ? '2px solid #ea580c'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                    }}
-                  >
-                    <Text size="L200">Default (No Nameplate)</Text>
+                    ))}
                   </div>
-
-                  {PRESET_NAMEPLATES.map((preset) => {
-                    const isSelected = flare.nameplate?.preset === preset.id;
-                    return (
-                      <div
-                        key={preset.id}
-                        onClick={() =>
-                          setFlare((p) => ({
-                            ...p,
-                            nameplate: { preset: preset.id, gradient: preset.gradient, textColor: preset.textColor },
-                          }))
-                        }
-                        style={{
-                          border: isSelected
-                            ? '2px solid #ea580c'
-                            : preset.border || '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '8px',
-                          padding: '12px',
-                          background: preset.gradient,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text size="L200" style={{ fontWeight: config.fontWeight.W700, color: preset.textColor }}>
-                          {preset.name}
-                        </Text>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <Box gap="200" alignItems="Center" style={{ marginTop: 8 }}>
                   <Button
                     size="300"
                     variant="Secondary"
@@ -499,396 +520,243 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                     before={<Icon src={Icons.Photo} size="50" />}
                     onClick={() => nameplateInputRef.current?.click()}
                   >
-                    <Text size="B200">Upload Custom Nameplate Image/Texture</Text>
+                    <Text size="B200">Upload Custom Nameplate Banner</Text>
                   </Button>
                 </Box>
-              </Box>
-            )}
+              )}
+            </div>
 
-            {/* TAB 3: NAME FONT & GLOW */}
-            {activeTab === 'font' && (
-              <Box direction="Column" gap="300">
-                <Box direction="Column" gap="100">
-                  <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
-                    Custom Display Name Font & Glow
-                  </Text>
-                  <Text size="L200" style={{ opacity: 0.6 }}>
-                    Give your username a unique typography style across all chat rooms, member lists, and profile cards!
-                  </Text>
-                </Box>
-
-                {/* Preset Fonts Grid */}
-                <Text size="L200" style={{ fontWeight: config.fontWeight.W700, marginTop: 4 }}>
-                  Font Presets (Discord Nitro Style)
-                </Text>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-                    gap: '12px',
-                  }}
-                >
+            {/* 3. AVATAR & DECORATION */}
+            <div
+              style={{
+                background:
+                  activeSection === 'avatar' ? 'rgba(234, 88, 12, 0.12)' : '#2b2d31',
+                border:
+                  activeSection === 'avatar'
+                    ? '1.5px solid #ea580c'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveSection(activeSection === 'avatar' ? null : 'avatar')}
+            >
+              <Box justifyContent="SpaceBetween" alignItems="Center">
+                <Box alignItems="Center" gap="200">
                   <div
-                    onClick={() =>
-                      setFlare((p) => ({
-                        ...p,
-                        font: { ...p.font, preset: '', family: '', url: '' },
-                      }))
-                    }
                     style={{
-                      border: !flare.font?.preset && !flare.font?.family && !flare.font?.url
-                        ? '2px solid #ea580c'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      background: 'rgba(255, 255, 255, 0.03)',
+                      position: 'relative',
+                      width: 44,
+                      height: 44,
+                      borderRadius: '50%',
+                      background: '#1e1f22',
                     }}
                   >
-                    <Text size="L200">Default System Font</Text>
+                    <UserAvatar
+                      userId={myUserId}
+                      src={avatarUrl}
+                      renderFallback={() => (
+                        <Text size="H5" style={{ color: '#fff' }}>
+                          {nameInitials(displayName)}
+                        </Text>
+                      )}
+                    />
+                    {activeDecoration && (
+                      <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
+                    )}
                   </div>
+                  <Box direction="Column" gap="50">
+                    <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
+                      AVATAR & DECORATION
+                    </Text>
+                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                      {activeDecoration ? 'Custom Frame Active' : 'No Decoration'}
+                    </Text>
+                  </Box>
+                </Box>
+                <Chip size="200" variant={activeSection === 'avatar' ? 'Primary' : 'Surface'}>
+                  <Text size="L100">{activeSection === 'avatar' ? 'Close' : 'Edit'}</Text>
+                </Chip>
+              </Box>
 
-                  {PRESET_FONTS.map((preset) => {
-                    const isSelected = flare.font?.preset === preset.id;
-                    return (
+              {activeSection === 'avatar' && (
+                <Box
+                  direction="Column"
+                  gap="300"
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    <div
+                      onClick={() =>
+                        setFlare((p) => ({
+                          ...p,
+                          avatarDecoration: { ...p.avatarDecoration, url: '' },
+                        }))
+                      }
+                      style={{
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: !flare.avatarDecoration?.url
+                          ? '2px solid #ea580c'
+                          : '1px solid rgba(255,255,255,0.08)',
+                        background: '#1e1f22',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Text size="L100">None</Text>
+                    </div>
+                    {PRESET_DECORATIONS.map((d) => (
                       <div
-                        key={preset.id}
+                        key={d.id}
                         onClick={() =>
                           setFlare((p) => ({
                             ...p,
-                            font: {
-                              ...p.font,
-                              preset: preset.id,
-                              family: '',
-                              url: '',
-                              textShadow: p.font?.textShadow || preset.textShadow,
-                              weight: preset.weight,
-                              letterSpacing: preset.letterSpacing,
+                            avatarDecoration: {
+                              url: `data:image/svg+xml;utf8,${encodeURIComponent(d.svg)}`,
+                              animation: d.animation,
+                              glowColor: d.glowColor,
+                              scale: 1.18,
                             },
                           }))
                         }
                         style={{
-                          border: isSelected
-                            ? '2px solid #ea580c'
-                            : '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '8px',
-                          padding: '12px',
-                          background: isSelected ? 'rgba(234, 88, 12, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                          cursor: 'pointer',
+                          padding: '8px',
+                          borderRadius: '6px',
+                          border:
+                            flare.avatarDecoration?.glowColor === d.glowColor &&
+                            flare.avatarDecoration?.url?.length
+                              ? '2px solid #ea580c'
+                              : '1px solid rgba(255,255,255,0.08)',
+                          background: '#1e1f22',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '6px',
+                          alignItems: 'center',
+                          cursor: 'pointer',
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text size="L100" style={{ opacity: 0.6 }}>{preset.category}</Text>
-                          <Text size="L100" style={{ fontWeight: config.fontWeight.W700 }}>{preset.name}</Text>
-                        </div>
                         <div
-                          style={{
-                            fontFamily: preset.family,
-                            fontSize: '17px',
-                            letterSpacing: preset.letterSpacing,
-                            textShadow: preset.textShadow,
-                            textAlign: 'center',
-                            padding: '6px 0',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {profile.displayName || 'Username'}
-                        </div>
+                          style={{ width: 34, height: 34 }}
+                          dangerouslySetInnerHTML={{ __html: d.svg }}
+                        />
+                        <Text size="L100" style={{ fontSize: 10, marginTop: 4 }}>
+                          {d.name}
+                        </Text>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                  <Button
+                    size="300"
+                    variant="Secondary"
+                    fill="Outline"
+                    radii="Pill"
+                    before={<Icon src={Icons.Photo} size="50" />}
+                    onClick={() => avatarInputRef.current?.click()}
+                  >
+                    <Text size="B200">Upload Circular Frame (GIF/PNG)</Text>
+                  </Button>
+                </Box>
+              )}
+            </div>
 
-                {/* Custom Upload and Webfont */}
-                <Box direction="Column" gap="200" style={{ marginTop: 8, padding: '14px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <Text size="T200" style={{ fontWeight: config.fontWeight.W700 }}>
-                    Upload Your Own Custom Font (.woff2, .woff, .ttf, .otf)
-                  </Text>
-                  <Text size="L100" style={{ opacity: 0.6 }}>
-                    Free for everyone! Upload any font file directly to Matrix so your friends see your name in your custom font.
-                  </Text>
-                  <Box gap="200" alignItems="Center" wrap="Wrap">
-                    <Button
-                      size="300"
-                      variant="Secondary"
-                      fill="Outline"
-                      radii="Pill"
-                      before={<Icon src={Icons.Photo} size="50" />}
-                      onClick={() => fontInputRef.current?.click()}
-                    >
-                      <Text size="B200">
-                        {flare.font?.preset === 'custom' && flare.font?.family
-                          ? `Font: ${flare.font.family} (Click to Change)`
-                          : 'Choose Font File (.woff2 / .ttf / .otf)'}
-                      </Text>
-                    </Button>
+            {/* 4. BANNER COLOR & IMAGE */}
+            <div
+              style={{
+                background:
+                  activeSection === 'banner' ? 'rgba(234, 88, 12, 0.12)' : '#2b2d31',
+                border:
+                  activeSection === 'banner'
+                    ? '1.5px solid #ea580c'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveSection(activeSection === 'banner' ? null : 'banner')}
+            >
+              <Box justifyContent="SpaceBetween" alignItems="Center">
+                <Box alignItems="Center" gap="200">
+                  <div
+                    style={{
+                      width: 44,
+                      height: 28,
+                      borderRadius: '6px',
+                      background: flare.banner?.url
+                        ? `url(${mxcUrlToHttp(mx, flare.banner.url, useAuth)}) center/cover`
+                        : flare.banner?.gradient || flare.banner?.themeColor || '#76c800',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                    }}
+                  />
+                  <Box direction="Column" gap="50">
+                    <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
+                      BANNER COLOR / IMAGE
+                    </Text>
+                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                      {flare.banner?.url ? 'Custom Banner Image' : 'Banner Color Active'}
+                    </Text>
                   </Box>
+                </Box>
+                <Chip size="200" variant={activeSection === 'banner' ? 'Primary' : 'Surface'}>
+                  <Text size="L100">{activeSection === 'banner' ? 'Close' : 'Edit'}</Text>
+                </Chip>
+              </Box>
 
-                  {/* Or Google Font Name */}
-                  <Box direction="Column" gap="100" style={{ marginTop: 8 }}>
-                    <Text size="L100" style={{ opacity: 0.7 }}>Or Enter Any Google Font Family Name:</Text>
-                    <Box gap="200" alignItems="Center">
-                      <Input
-                        size="300"
-                        value={googleFontInput}
-                        onChange={(e) => setGoogleFontInput(e.target.value)}
-                        placeholder="e.g. Lobster, Pacifico, Satisfy, VT323"
-                        style={{ flex: 1 }}
+              {activeSection === 'banner' && (
+                <Box
+                  direction="Column"
+                  gap="300"
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Text size="L100" style={{ color: '#dbdee1' }}>
+                    Banner Presets:
+                  </Text>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { name: 'Neon Lime (Discord)', color: '#76c800', grad: 'linear-gradient(135deg, #76c800 0%, #4d8800 100%)' },
+                      { name: 'Entity Crimson', color: '#dc2626', grad: 'linear-gradient(135deg, #450a0a 0%, #991b1b 100%)' },
+                      { name: 'Cyber Cyan', color: '#06b6d4', grad: 'linear-gradient(135deg, #083344 0%, #06b6d4 100%)' },
+                      { name: 'Void Violet', color: '#a855f7', grad: 'linear-gradient(135deg, #2e1065 0%, #a855f7 100%)' },
+                      { name: 'Imperial Gold', color: '#eab308', grad: 'linear-gradient(135deg, #422006 0%, #eab308 100%)' },
+                    ].map((b) => (
+                      <div
+                        key={b.name}
+                        onClick={() =>
+                          setFlare((p) => ({
+                            ...p,
+                            banner: { type: 'gradient', gradient: b.grad, themeColor: b.color, url: '' },
+                          }))
+                        }
+                        style={{
+                          width: 44,
+                          height: 32,
+                          borderRadius: '6px',
+                          background: b.grad,
+                          cursor: 'pointer',
+                          border:
+                            flare.banner?.themeColor === b.color
+                              ? '2px solid #ffffff'
+                              : '1px solid rgba(0,0,0,0.4)',
+                        }}
+                        title={b.name}
                       />
-                      <Button
-                        size="300"
-                        variant="Secondary"
-                        fill="Solid"
-                        radii="Pill"
-                        onClick={() => {
-                          if (googleFontInput.trim()) {
-                            loadGoogleFont(googleFontInput.trim());
-                            setFlare((p) => ({
-                              ...p,
-                              font: {
-                                ...p.font,
-                                preset: '',
-                                family: googleFontInput.trim(),
-                                url: '',
-                              },
-                            }));
-                          }
-                        }}
-                      >
-                        <Text size="B200">Apply</Text>
-                      </Button>
-                    </Box>
-                  </Box>
-                </Box>
-
-                {/* Text Glow & Shadows */}
-                <Box direction="Column" gap="200" style={{ marginTop: 8 }}>
-                  <Text size="T200" style={{ fontWeight: config.fontWeight.W700 }}>
-                    Text Glow & Shadow Effects
-                  </Text>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
-                    {PRESET_TEXT_GLOWS.map((glow) => {
-                      const isSelected = flare.font?.textShadow === glow.shadow;
-                      return (
-                        <div
-                          key={glow.id}
-                          onClick={() =>
-                            setFlare((p) => ({
-                              ...p,
-                              font: { ...p.font, textShadow: glow.shadow },
-                            }))
-                          }
-                          style={{
-                            border: isSelected ? '2px solid #ea580c' : '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '6px',
-                            padding: '8px',
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            background: isSelected ? 'rgba(234, 88, 12, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                          }}
-                        >
-                          <Text
-                            size="L100"
-                            style={{
-                              textShadow: glow.shadow !== 'none' ? glow.shadow : undefined,
-                              fontWeight: config.fontWeight.W700,
-                            }}
-                          >
-                            {glow.name}
-                          </Text>
-                        </div>
-                      );
-                    })}
+                    ))}
                   </div>
-                </Box>
-
-                {/* Typography Spacing & Capitalization */}
-                <Box gap="400" wrap="Wrap" style={{ marginTop: 8 }}>
-                  <Box direction="Column" gap="100" style={{ flex: '1 1 180px' }}>
-                    <Text size="L100" style={{ opacity: 0.7 }}>Letter Spacing:</Text>
-                    <Box gap="100">
-                      {['normal', '1px', '2px', '3px'].map((spacing) => (
-                        <Chip
-                          key={spacing}
-                          size="200"
-                          variant={(flare.font?.letterSpacing || 'normal') === spacing ? 'Primary' : 'Surface'}
-                          onClick={() => setFlare((p) => ({ ...p, font: { ...p.font, letterSpacing: spacing } }))}
-                        >
-                          <Text size="L100">{spacing}</Text>
-                        </Chip>
-                      ))}
-                    </Box>
-                  </Box>
-
-                  <Box direction="Column" gap="100" style={{ flex: '1 1 180px' }}>
-                    <Text size="L100" style={{ opacity: 0.7 }}>Transform:</Text>
-                    <Box gap="100">
-                      {[
-                        { id: 'none', label: 'Normal' },
-                        { id: 'uppercase', label: 'UPPER' },
-                        { id: 'capitalize', label: 'Caps' },
-                      ].map((t) => (
-                        <Chip
-                          key={t.id}
-                          size="200"
-                          variant={(flare.font?.textTransform || 'none') === t.id ? 'Primary' : 'Surface'}
-                          onClick={() => setFlare((p) => ({ ...p, font: { ...p.font, textTransform: t.id as any } }))}
-                        >
-                          <Text size="L100">{t.label}</Text>
-                        </Chip>
-                      ))}
-                    </Box>
-                  </Box>
-                </Box>
-              </Box>
-            )}
-
-            {/* TAB 4: PROFILE EFFECT */}
-            {activeTab === 'effect' && (
-              <Box direction="Column" gap="300">
-                <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
-                  Profile Effect (Artistic / Animated Card Overlay)
-                </Text>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-                  <div
-                    onClick={() => setFlare((p) => ({ ...p, profileEffect: { preset: '', url: '' } }))}
-                    style={{
-                      border: !flare.profileEffect?.preset && !flare.profileEffect?.url
-                        ? '2px solid #ea580c'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                    }}
-                  >
-                    <Text size="L200">None</Text>
-                  </div>
-
-                  {PRESET_EFFECTS.map((preset) => {
-                    const isSelected = flare.profileEffect?.preset === preset.id;
-                    return (
-                      <div
-                        key={preset.id}
-                        onClick={() =>
-                          setFlare((p) => ({
-                            ...p,
-                            profileEffect: { preset: preset.id },
-                          }))
-                        }
-                        style={{
-                          border: isSelected ? '2px solid #ea580c' : '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '8px',
-                          padding: '16px',
-                          cursor: 'pointer',
-                          background: isSelected ? 'rgba(234, 88, 12, 0.2)' : 'rgba(0, 0, 0, 0.4)',
-                          textAlign: 'center',
-                        }}
-                      >
-                        <Text size="L200" style={{ fontWeight: config.fontWeight.W700 }}>
-                          {preset.name}
-                        </Text>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <Box gap="200" alignItems="Center" style={{ marginTop: 8 }}>
-                  <Button
-                    size="300"
-                    variant="Secondary"
-                    fill="Outline"
-                    radii="Pill"
-                    before={<Icon src={Icons.Photo} size="50" />}
-                    onClick={() => effectInputRef.current?.click()}
-                  >
-                    <Text size="B200">Upload Custom Profile Effect (SVG/Video/GIF)</Text>
-                  </Button>
-                </Box>
-              </Box>
-            )}
-
-            {/* TAB 5: PROFILE CARD FRAME */}
-            {activeTab === 'frame' && (
-              <Box direction="Column" gap="300">
-                <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
-                  Profile Card Frame (Themed Outer Border)
-                </Text>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-                  <div
-                    onClick={() => setFlare((p) => ({ ...p, profileFrame: { preset: '', url: '' } }))}
-                    style={{
-                      border: !flare.profileFrame?.preset && !flare.profileFrame?.url
-                        ? '2px solid #ea580c'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                    }}
-                  >
-                    <Text size="L200">Default Card</Text>
-                  </div>
-
-                  {PRESET_FRAMES.map((preset) => {
-                    const isSelected = flare.profileFrame?.preset === preset.id;
-                    return (
-                      <div
-                        key={preset.id}
-                        onClick={() =>
-                          setFlare((p) => ({
-                            ...p,
-                            profileFrame: { preset: preset.id },
-                          }))
-                        }
-                        style={{
-                          border: isSelected ? '2px solid #ea580c' : preset.style.border,
-                          borderRadius: '8px',
-                          padding: '16px',
-                          cursor: 'pointer',
-                          background: isSelected ? 'rgba(234, 88, 12, 0.2)' : 'rgba(0,0,0,0.3)',
-                          boxShadow: preset.style.boxShadow,
-                          textAlign: 'center',
-                        }}
-                      >
-                        <Text size="L200" style={{ fontWeight: config.fontWeight.W700 }}>
-                          {preset.name}
-                        </Text>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <Box gap="200" alignItems="Center" style={{ marginTop: 8 }}>
-                  <Button
-                    size="300"
-                    variant="Secondary"
-                    fill="Outline"
-                    radii="Pill"
-                    before={<Icon src={Icons.Photo} size="50" />}
-                    onClick={() => frameInputRef.current?.click()}
-                  >
-                    <Text size="B200">Upload Custom Frame Overlay</Text>
-                  </Button>
-                </Box>
-              </Box>
-            )}
-
-            {/* TAB 5: BANNER */}
-            {activeTab === 'banner' && (
-              <Box direction="Column" gap="300">
-                <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
-                  Profile Banner
-                </Text>
-                <Box gap="200" alignItems="Center">
                   <Button
                     size="300"
                     variant="Secondary"
@@ -897,167 +765,549 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                     before={<Icon src={Icons.Photo} size="50" />}
                     onClick={() => bannerInputRef.current?.click()}
                   >
-                    <Text size="B200">Upload Banner Image or Video</Text>
+                    <Text size="B200">Upload Banner Image / Video</Text>
                   </Button>
                 </Box>
+              )}
+            </div>
 
-                <Box direction="Column" gap="150" style={{ marginTop: 8 }}>
-                  {[
-                    { label: 'Dead by Daylight Entity Red', grad: 'linear-gradient(135deg, #450a0a 0%, #7c2d12 50%, #1c1917 100%)', color: '#ea580c' },
-                    { label: 'Cosmic Purple', grad: 'linear-gradient(135deg, #2b1055 0%, #7597de 100%)', color: '#8a2be2' },
-                    { label: 'Cyberpunk Sunset', grad: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)', color: '#06b6d4' },
-                    { label: 'Matrix Dark Emerald', grad: 'linear-gradient(135deg, #051911 0%, #064e3b 100%)', color: '#10b981' },
-                  ].map((preset) => (
-                    <div
-                      key={preset.label}
-                      onClick={() =>
-                        setFlare((p) => ({
-                          ...p,
-                          banner: { type: 'gradient', gradient: preset.grad, themeColor: preset.color },
-                        }))
-                      }
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        background: preset.grad,
-                        cursor: 'pointer',
-                        border: flare.banner?.gradient === preset.grad ? '2px solid white' : '1px solid rgba(255, 255, 255, 0.1)',
-                      }}
-                    >
-                      <Text size="T200" style={{ fontWeight: config.fontWeight.W600, color: 'white' }}>
-                        {preset.label}
-                      </Text>
-                    </div>
-                  ))}
+            {/* 5. PROFILE THEME & GRADIENT (VESKTOP PLUGIN STYLE) */}
+            <div
+              style={{
+                background:
+                  activeSection === 'theme' ? 'rgba(234, 88, 12, 0.12)' : '#2b2d31',
+                border:
+                  activeSection === 'theme'
+                    ? '1.5px solid #ea580c'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveSection(activeSection === 'theme' ? null : 'theme')}
+            >
+              <Box justifyContent="SpaceBetween" alignItems="Center">
+                <Box alignItems="Center" gap="200">
+                  <div
+                    style={{
+                      width: 44,
+                      height: 28,
+                      borderRadius: '6px',
+                      background:
+                        flare.cardTheme?.gradient ||
+                        'linear-gradient(180deg, #420914 0%, #1a0206 100%)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                    }}
+                  />
+                  <Box direction="Column" gap="50">
+                    <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
+                      CARD THEME (GRADIENT)
+                    </Text>
+                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                      {activeCardTheme ? activeCardTheme.name : 'Custom Gradient'}
+                    </Text>
+                  </Box>
                 </Box>
+                <Chip size="200" variant={activeSection === 'theme' ? 'Primary' : 'Surface'}>
+                  <Text size="L100">{activeSection === 'theme' ? 'Close' : 'Edit'}</Text>
+                </Chip>
               </Box>
-            )}
 
-            {/* TAB 6: SHOWCASE BOARDS */}
-            {activeTab === 'boards' && (
-              <Box direction="Column" gap="300">
-                <Box justifyContent="SpaceBetween" alignItems="Center">
-                  <Text size="T300" style={{ fontWeight: config.fontWeight.W600 }}>
-                    Showcase Boards (Games, Gear, Links)
+              {activeSection === 'theme' && (
+                <Box
+                  direction="Column"
+                  gap="300"
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Text size="L100" style={{ color: '#dbdee1' }}>
+                    Vesktop / Discord Profile Gradients:
                   </Text>
-                  <Button size="200" variant="Secondary" fill="Outline" radii="Pill" onClick={handleAddSampleBoard}>
-                    <Text size="B100">+ Add Sample Board</Text>
-                  </Button>
-                </Box>
-
-                {(!flare.boards || flare.boards.length === 0) ? (
-                  <Text size="T200" style={{ opacity: 0.6 }}>
-                    No showcase boards yet. Click "+ Add Sample Board" to get started!
-                  </Text>
-                ) : (
-                  <Box direction="Column" gap="200">
-                    {flare.boards.map((b, idx) => (
-                      <Box
-                        key={b.id}
-                        alignItems="Center"
-                        justifyContent="SpaceBetween"
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    {PRESET_CARD_THEMES.map((theme) => (
+                      <div
+                        key={theme.id}
+                        onClick={() =>
+                          setFlare((p) => ({
+                            ...p,
+                            cardTheme: {
+                              preset: theme.id,
+                              gradient: theme.gradient,
+                              primaryColor: theme.primaryColor,
+                              accentColor: theme.accentColor,
+                            },
+                          }))
+                        }
                         style={{
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          padding: '10px',
+                          borderRadius: '6px',
+                          background: theme.gradient,
+                          border:
+                            flare.cardTheme?.preset === theme.id
+                              ? '2px solid #ea580c'
+                              : '1px solid rgba(255,255,255,0.1)',
+                          textAlign: 'center',
+                          cursor: 'pointer',
                         }}
                       >
-                        <Box direction="Column">
-                          <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
-                            {b.title}
-                          </Text>
-                          <Text size="L100" style={{ opacity: 0.5 }}>
-                            {b.items.length} items ({b.type})
-                          </Text>
-                        </Box>
-                        <Button
-                          size="200"
-                          variant="Critical"
-                          fill="None"
-                          onClick={() =>
-                            setFlare((p) => ({
-                              ...p,
-                              boards: p.boards?.filter((_, i) => i !== idx),
-                            }))
-                          }
-                        >
-                          <Text size="B100">Remove</Text>
-                        </Button>
-                      </Box>
+                        <Text size="L100" style={{ fontWeight: 700, color: '#fff' }}>
+                          {theme.name}
+                        </Text>
+                      </div>
                     ))}
-                  </Box>
-                )}
+                  </div>
+                </Box>
+              )}
+            </div>
+
+            {/* 6. PROFILE EFFECT & FRAME */}
+            <div
+              style={{
+                background:
+                  activeSection === 'effectFrame' ? 'rgba(234, 88, 12, 0.12)' : '#2b2d31',
+                border:
+                  activeSection === 'effectFrame'
+                    ? '1.5px solid #ea580c'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveSection(activeSection === 'effectFrame' ? null : 'effectFrame')}
+            >
+              <Box justifyContent="SpaceBetween" alignItems="Center">
+                <Box direction="Column" gap="50">
+                  <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
+                    PROFILE EFFECT & FRAME
+                  </Text>
+                  <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                    {activeEffectPreset ? activeEffectPreset.name : flare.profileEffect?.url ? 'Custom Effect' : 'No Effect'} •{' '}
+                    {activeFramePreset ? activeFramePreset.name : 'No Frame'}
+                  </Text>
+                </Box>
+                <Chip size="200" variant={activeSection === 'effectFrame' ? 'Primary' : 'Surface'}>
+                  <Text size="L100">{activeSection === 'effectFrame' ? 'Close' : 'Edit'}</Text>
+                </Chip>
               </Box>
-            )}
+
+              {activeSection === 'effectFrame' && (
+                <Box
+                  direction="Column"
+                  gap="300"
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Text size="L100" style={{ color: '#dbdee1' }}>
+                    Profile Effect (Card Overlay):
+                  </Text>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    <div
+                      onClick={() => {
+                        setFlare((p) => ({ ...p, profileEffect: { preset: '', url: '' } }));
+                      }}
+                      style={{
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border:
+                          !flare.profileEffect?.preset && !flare.profileEffect?.url
+                            ? '2px solid #ea580c'
+                            : '1px solid rgba(255,255,255,0.08)',
+                        background: '#1e1f22',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Text size="L100">None</Text>
+                    </div>
+                    {PRESET_EFFECTS.map((e) => (
+                      <div
+                        key={e.id}
+                        onClick={() => {
+                          setFlare((p) => ({ ...p, profileEffect: { preset: e.id } }));
+                          setReplayEffectKey((k) => k + 1);
+                        }}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '6px',
+                          border:
+                            flare.profileEffect?.preset === e.id
+                              ? '2px solid #ea580c'
+                              : '1px solid rgba(255,255,255,0.08)',
+                          background:
+                            flare.profileEffect?.preset === e.id
+                              ? 'rgba(234,88,12,0.2)'
+                              : '#1e1f22',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Text size="L100">{e.name}</Text>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Text size="L100" style={{ color: '#dbdee1', marginTop: 6 }}>
+                    Profile Outer Frame:
+                  </Text>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    <div
+                      onClick={() => setFlare((p) => ({ ...p, profileFrame: { preset: '', url: '' } }))}
+                      style={{
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border:
+                          !flare.profileFrame?.preset && !flare.profileFrame?.url
+                            ? '2px solid #ea580c'
+                            : '1px solid rgba(255,255,255,0.08)',
+                        background: '#1e1f22',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Text size="L100">None</Text>
+                    </div>
+                    {PRESET_FRAMES.map((f) => (
+                      <div
+                        key={f.id}
+                        onClick={() => setFlare((p) => ({ ...p, profileFrame: { preset: f.id } }))}
+                        style={{
+                          padding: '8px',
+                          borderRadius: '6px',
+                          border:
+                            flare.profileFrame?.preset === f.id
+                              ? '2px solid #ea580c'
+                              : '1px solid rgba(255,255,255,0.08)',
+                          background:
+                            flare.profileFrame?.preset === f.id
+                              ? 'rgba(234,88,12,0.2)'
+                              : '#1e1f22',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Text size="L100">{f.name}</Text>
+                      </div>
+                    ))}
+                  </div>
+                  <Box gap="200">
+                    <Button
+                      size="300"
+                      variant="Secondary"
+                      fill="Outline"
+                      radii="Pill"
+                      onClick={() => effectInputRef.current?.click()}
+                    >
+                      <Text size="B200">Upload Effect (SVG/Video)</Text>
+                    </Button>
+                    <Button
+                      size="300"
+                      variant="Secondary"
+                      fill="Outline"
+                      radii="Pill"
+                      onClick={() => frameInputRef.current?.click()}
+                    >
+                      <Text size="B200">Upload Frame</Text>
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+            </div>
+
+            {/* 7. BIO & SHOWCASE BOARDS */}
+            <div
+              style={{
+                background:
+                  activeSection === 'bioBoards' ? 'rgba(234, 88, 12, 0.12)' : '#2b2d31',
+                border:
+                  activeSection === 'bioBoards'
+                    ? '1.5px solid #ea580c'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveSection(activeSection === 'bioBoards' ? null : 'bioBoards')}
+            >
+              <Box justifyContent="SpaceBetween" alignItems="Center">
+                <Box direction="Column" gap="50">
+                  <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
+                    BIO & SHOWCASE WIDGETS
+                  </Text>
+                  <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                    {flare.boards?.length || 0} Widgets Active
+                  </Text>
+                </Box>
+                <Chip size="200" variant={activeSection === 'bioBoards' ? 'Primary' : 'Surface'}>
+                  <Text size="L100">{activeSection === 'bioBoards' ? 'Close' : 'Edit'}</Text>
+                </Chip>
+              </Box>
+
+              {activeSection === 'bioBoards' && (
+                <Box
+                  direction="Column"
+                  gap="300"
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 12,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Text size="L100" style={{ color: '#dbdee1' }}>
+                    Pronouns:
+                  </Text>
+                  <Input
+                    size="300"
+                    value={flare.pronouns || ''}
+                    onChange={(e) => setFlare((p) => ({ ...p, pronouns: e.target.value }))}
+                    placeholder="e.g. Cheese/Burger • he/him"
+                  />
+                  <Text size="L100" style={{ color: '#dbdee1' }}>
+                    About Me (Bio):
+                  </Text>
+                  <textarea
+                    rows={3}
+                    value={flare.bio || ''}
+                    onChange={(e) => setFlare((p) => ({ ...p, bio: e.target.value }))}
+                    placeholder="I think hamburgers and cheeseburgers work well with fries..."
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: '#1e1f22',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      resize: 'vertical',
+                    }}
+                  />
+                  <Box justifyContent="SpaceBetween" alignItems="Center">
+                    <Text size="L100" style={{ color: '#dbdee1' }}>
+                      Showcase Widgets:
+                    </Text>
+                    <Button
+                      size="200"
+                      variant="Secondary"
+                      fill="Outline"
+                      radii="Pill"
+                      onClick={handleAddSampleBoard}
+                    >
+                      <Text size="B100">+ Add Sample Widget</Text>
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+            </div>
           </Box>
 
-          {/* Right: Real-time Live Preview Modal Card */}
-          <Box direction="Column" gap="200" style={{ flex: '1 1 380px', maxWidth: 440 }}>
-            <Text size="T200" style={{ fontWeight: config.fontWeight.W700, opacity: 0.7 }}>
-              LIVE BUNDLE PREVIEW
-            </Text>
+          {/* ========================================================= */}
+          {/* RIGHT COLUMN: THE LIVE DISCORD PROFILE CARD                */}
+          {/* ========================================================= */}
+          <Box
+            direction="Column"
+            gap="200"
+            style={{ flex: '1 1 440px', minWidth: 320, maxWidth: 500 }}
+          >
+            <Box justifyContent="SpaceBetween" alignItems="Center">
+              <Text
+                size="L200"
+                style={{
+                  fontWeight: config.fontWeight.W700,
+                  color: '#949ba4',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                LIVE PROFILE PREVIEW
+              </Text>
+              <Button
+                size="200"
+                variant="Secondary"
+                fill="None"
+                radii="Pill"
+                onClick={() => setReplayEffectKey((k) => k + 1)}
+              >
+                <Text size="B100">↻ Replay Effect</Text>
+              </Button>
+            </Box>
 
-            {/* Profile Frame Wrapper */}
+            {/* Profile Frame Outer Wrapper */}
             <ProfileCardFrameWrapper frame={flare.profileFrame}>
               <div
                 style={{
                   borderRadius: '16px',
                   overflow: 'hidden',
-                  background: '#18181c',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  background:
+                    flare.cardTheme?.gradient ||
+                    'linear-gradient(180deg, #420914 0%, #1a0206 100%)',
+                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.7)',
                   position: 'relative',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
                 }}
               >
-                {/* 3. Profile Effect Overlay */}
-                <ProfileEffectOverlay effect={flare.profileEffect} />
+                {/* Temporary Profile Effect Overlay */}
+                <ProfileEffectOverlay
+                  key={replayEffectKey}
+                  effect={flare.profileEffect}
+                  forcePlay
+                />
 
-                {/* Banner */}
+                {/* Banner Section */}
                 <div
                   style={{
-                    height: 120,
+                    height: 130,
                     width: '100%',
                     background: flare.banner?.url
                       ? `url(${mxcUrlToHttp(mx, flare.banner.url, useAuth)}) center/cover no-repeat`
-                      : flare.banner?.gradient || 'linear-gradient(135deg, #450a0a 0%, #7c2d12 100%)',
+                      : flare.banner?.gradient || flare.banner?.themeColor || 'linear-gradient(135deg, #76c800 0%, #4d8800 100%)',
                     position: 'relative',
                   }}
                 />
 
-                {/* Avatar + Decoration */}
-                <div style={{ padding: '0 20px 20px', marginTop: -45, position: 'relative', zIndex: 11 }}>
-                  {/* Circular Avatar Container */}
-                  <div style={{ position: 'relative', width: 84, height: 84 }}>
-                    <img
-                      src={avatarUrl || 'https://matrix.org/img/matrix-logo.svg'}
-                      alt="avatar"
+                {/* Avatar and Identity Section */}
+                <div style={{ padding: '0 20px 24px', marginTop: -46, position: 'relative', zIndex: 11 }}>
+                  {/* Circular Avatar Container - Clean fallback, no broken alt text */}
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: 86,
+                      height: 86,
+                      borderRadius: '50%',
+                      background: '#1a0206',
+                      padding: 4,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <div
                       style={{
                         width: '100%',
                         height: '100%',
                         borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '4px solid #18181c',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#2b2d31',
+                      }}
+                    >
+                      <UserAvatar
+                        userId={myUserId}
+                        src={avatarUrl}
+                        renderFallback={() => (
+                          <Text size="H2" style={{ fontWeight: 700, color: '#ffffff' }}>
+                            {nameInitials(displayName)}
+                          </Text>
+                        )}
+                      />
+                    </div>
+                    {/* Circular Avatar Decoration */}
+                    {activeDecoration && (
+                      <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
+                    )}
+                    {/* Status Dot */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 4,
+                        right: 4,
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: '#23a55a',
+                        border: '3px solid #1a0206',
+                        zIndex: 12,
                       }}
                     />
-                    {/* 1. Avatar Decoration */}
-                    <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
                   </div>
 
-                  {/* 2. Custom Nameplate & Font */}
+                  {/* Name styled with font + effect + color */}
                   <div style={{ marginTop: 12 }}>
-                    <UserNameplate nameplate={flare.nameplate} font={flare.font}>
-                      <Text size="H400" style={{ fontWeight: config.fontWeight.W700 }}>
-                        {profile.displayName || myUserId}
-                      </Text>
-                    </UserNameplate>
-                    <div style={{ marginTop: 2 }}>
-                      <Text size="L200" style={{ opacity: 0.5 }}>
-                        {myUserId}
-                      </Text>
+                    <div
+                      style={{ cursor: 'pointer', display: 'inline-flex' }}
+                      onClick={() => setShowDisplayNameModal(true)}
+                      title="Click to customize display name style"
+                    >
+                      <UserDisplayName style={flare.displayNameStyle || flare.font}>
+                        <Text
+                          size="H400"
+                          style={{
+                            fontWeight: config.fontWeight.W700,
+                          }}
+                        >
+                          {displayName}
+                        </Text>
+                      </UserDisplayName>
                     </div>
+                    <div style={{ marginTop: 4, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <Text size="L200" style={{ color: '#dbdee1', opacity: 0.8 }}>
+                        {displayName}
+                      </Text>
+                      {flare.pronouns && (
+                        <Text size="L200" style={{ color: '#949ba4' }}>
+                          • {flare.pronouns}
+                        </Text>
+                      )}
+                    </div>
+                    <Text size="L100" style={{ color: '#949ba4', opacity: 0.7 }}>
+                      {myUserId}
+                    </Text>
                   </div>
 
-                  {/* Profile Boards & Bio */}
+                  {/* Bio / About Me */}
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(0, 0, 0, 0.25)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                    }}
+                  >
+                    <Text
+                      size="L100"
+                      style={{
+                        textTransform: 'uppercase',
+                        fontWeight: 700,
+                        color: '#949ba4',
+                        marginBottom: 4,
+                      }}
+                    >
+                      About Me
+                    </Text>
+                    <Text size="T200" style={{ color: '#dbdee1', lineHeight: '1.4' }}>
+                      {flare.bio ||
+                        'I think hamburgers and cheeseburgers work well with fries...'}
+                    </Text>
+                  </div>
+
+                  {/* Showcase Boards / Widgets (Marvel Rivals, Games in Rotation, etc.) */}
                   <div style={{ marginTop: 16 }}>
                     <FlareProfileBoard flare={flare} />
                   </div>
@@ -1067,6 +1317,29 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
           </Box>
         </Box>
       </Scroll>
+
+      {/* Discord Change Display Name Style Modal */}
+      {showDisplayNameModal && (
+        <DisplayNameStyleModal
+          currentStyle={flare.displayNameStyle}
+          flare={flare}
+          displayName={displayName}
+          myUserId={myUserId}
+          avatarUrl={avatarUrl}
+          onSave={(newStyle) => {
+            setFlare((prev) => ({
+              ...prev,
+              displayNameStyle: newStyle,
+              font: {
+                ...prev.font,
+                textColor: newStyle.color,
+                preset: newStyle.fontId,
+              },
+            }));
+          }}
+          onClose={() => setShowDisplayNameModal(false)}
+        />
+      )}
     </Box>
   );
 }

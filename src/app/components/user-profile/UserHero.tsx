@@ -21,7 +21,7 @@ import { UserPresence } from '../../hooks/useUserPresence';
 import { AvatarPresence, PresenceBadge } from '../presence';
 import { ImageViewer } from '../image-viewer';
 import { stopPropagation } from '../../utils/keyboard';
-import { ProfileFlare, AvatarDecorationOverlay, UserNameplate } from '../../features/flare';
+import { ProfileFlare, AvatarDecorationOverlay, UserNameplate, UserDisplayName } from '../../features/flare';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
 import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 import { mxcUrlToHttp } from '../../utils/matrix';
@@ -38,7 +38,11 @@ export function UserHero({ userId, avatarUrl, presence, flare }: UserHeroProps) 
   const useAuth = useMediaAuthentication();
 
   const customBannerUrl = flare?.banner?.url ? mxcUrlToHttp(mx, flare.banner.url, useAuth) : undefined;
-  const customGradient = flare?.banner?.gradient;
+  const customGradient =
+    flare?.banner?.gradient ||
+    (flare?.banner?.themeColor
+      ? `linear-gradient(135deg, ${flare.banner.themeColor} 0%, ${flare.banner.themeColor} 100%)`
+      : undefined);
 
   return (
     <Box direction="Column" className={css.UserHero}>
@@ -121,7 +125,7 @@ export function UserHeroName({ displayName, userId, flare }: UserHeroNameProps) 
   return (
     <Box grow="Yes" direction="Column" gap="0">
       <Box alignItems="Baseline" gap="200" wrap="Wrap">
-        <UserNameplate nameplate={flare?.nameplate} font={flare?.font}>
+        <UserDisplayName style={flare?.displayNameStyle || flare?.font}>
           <Text
             size="H4"
             className={classNames(BreakWord, LineClamp3)}
@@ -129,7 +133,7 @@ export function UserHeroName({ displayName, userId, flare }: UserHeroNameProps) 
           >
             {displayName ?? username ?? userId}
           </Text>
-        </UserNameplate>
+        </UserDisplayName>
       </Box>
       <Box alignItems="Center" gap="100" wrap="Wrap">
         <Text size="T200" className={classNames(BreakWord, LineClamp3)} title={username}>

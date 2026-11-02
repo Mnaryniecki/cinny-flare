@@ -55,6 +55,24 @@ export type ShowcaseBoard = {
   items: ShowcaseItem[];
 };
 
+export type DisplayNameEffect =
+  | 'solid'
+  | 'gradient'
+  | 'neon'
+  | 'toon'
+  | 'pop'
+  | 'gummy'
+  | 'prism';
+
+export type DisplayNameStyle = {
+  fontId?: string; // id from DISCORD_FONTS (e.g. 'default', 'gothic', 'pixel'...)
+  fontFamily?: string; // CSS font-family
+  fontUrl?: string; // mxc:// or web URL for custom uploaded font file
+  effect?: DisplayNameEffect;
+  color?: string; // hex color e.g. #22c55e (toxic green from screenshot)
+  gradient?: string; // CSS linear-gradient string
+};
+
 export type ProfileFont = {
   preset?: string;        // ID of preset font
   family?: string;        // Font family name (Google font or custom uploaded name)
@@ -66,6 +84,13 @@ export type ProfileFont = {
   textTransform?: 'none' | 'uppercase' | 'capitalize' | 'lowercase';
 };
 
+export type ProfileCardTheme = {
+  preset?: string;
+  gradient?: string; // CSS linear-gradient string
+  primaryColor?: string; // e.g. #420914 (Midnight Wine)
+  accentColor?: string;  // e.g. #1a0206
+};
+
 export type ProfileFlare = {
   version: 1;
   bio?: string;
@@ -73,11 +98,13 @@ export type ProfileFlare = {
   pronouns?: string;
   // The Discord-style customizable layers:
   avatarDecoration?: AvatarDecoration; // 1. Avatar Decoration
-  nameplate?: ProfileNameplate;       // 2. Custom Nameplate banner
-  font?: ProfileFont;                  // 3. Custom Display Name Font & Glow
-  profileEffect?: ProfileEffect;       // 4. Profile Effect overlay
+  nameplate?: ProfileNameplate;       // 2. Custom Nameplate banner for the server member list!
+  displayNameStyle?: DisplayNameStyle; // 3. Display Name Style (Font, Effect, Color)
+  font?: ProfileFont;                  // Compatibility alias for typography
+  profileEffect?: ProfileEffect;       // 4. Profile Effect overlay (runs 3.8s then rests)
   profileFrame?: ProfileCardFrame;     // 5. Outer Profile Card Frame
-  banner?: ProfileBanner;
+  banner?: ProfileBanner;              // Banner Color / Image
+  cardTheme?: ProfileCardTheme;        // 6. Vesktop Profile Theme & Gradient
   badges?: ProfileBadge[];
   boards?: ShowcaseBoard[];
   updatedAt?: number;
@@ -97,6 +124,12 @@ export const DEFAULT_FLARE: ProfileFlare = {
   nameplate: {
     preset: '',
   },
+  displayNameStyle: {
+    fontId: 'default',
+    fontFamily: '',
+    effect: 'neon',
+    color: '#22c55e',
+  },
   font: {
     preset: '',
     family: '',
@@ -115,8 +148,14 @@ export const DEFAULT_FLARE: ProfileFlare = {
   },
   banner: {
     type: 'gradient',
-    gradient: 'linear-gradient(135deg, #1f1c2c 0%, #928dab 100%)',
-    themeColor: '#7b2cbf',
+    gradient: 'linear-gradient(135deg, #76c800 0%, #4d8800 100%)',
+    themeColor: '#76c800',
+  },
+  cardTheme: {
+    preset: 'midnight-wine',
+    gradient: 'linear-gradient(180deg, #420914 0%, #1a0206 100%)',
+    primaryColor: '#420914',
+    accentColor: '#1a0206',
   },
   badges: [],
   boards: [],
@@ -511,4 +550,103 @@ export const PRESET_TEXT_GLOWS = [
   { id: 'royal-gold', name: 'Imperial Gold', shadow: '0 0 8px rgba(234, 179, 8, 0.9), 0 0 16px rgba(202, 138, 4, 0.5)' },
   { id: 'hot-pink', name: 'Synthwave Pink', shadow: '0 0 8px rgba(244, 63, 94, 0.9), 0 0 16px rgba(236, 72, 153, 0.6)' },
 ];
+
+// 6. Vesktop Profile Theme & Gradient Presets
+export const PRESET_CARD_THEMES = [
+  {
+    id: 'midnight-wine',
+    name: 'Midnight Wine (Vesktop)',
+    gradient: 'linear-gradient(180deg, #420914 0%, #1a0206 100%)',
+    primaryColor: '#420914',
+    accentColor: '#1a0206',
+    description: 'Deep crimson wine burgundy gradient (from Vesktop plugin)',
+  },
+  {
+    id: 'cyber-abyss',
+    name: 'Cyberpunk Abyss',
+    gradient: 'linear-gradient(180deg, #083344 0%, #030712 100%)',
+    primaryColor: '#083344',
+    accentColor: '#030712',
+    description: 'Dark cyan tech gradient',
+  },
+  {
+    id: 'entity-charcoal',
+    name: 'Entity Charcoal',
+    gradient: 'linear-gradient(180deg, #3f1a0a 0%, #140803 100%)',
+    primaryColor: '#3f1a0a',
+    accentColor: '#140803',
+    description: 'Charred ember entity gradient',
+  },
+  {
+    id: 'void-violet',
+    name: 'Abyssal Violet',
+    gradient: 'linear-gradient(180deg, #2e1065 0%, #090214 100%)',
+    primaryColor: '#2e1065',
+    accentColor: '#090214',
+    description: 'Deep cosmic void purple',
+  },
+  {
+    id: 'matrix-emerald',
+    name: 'Matrix Emerald',
+    gradient: 'linear-gradient(180deg, #022c22 0%, #02120e 100%)',
+    primaryColor: '#022c22',
+    accentColor: '#02120e',
+    description: 'Dark phosphor green terminal',
+  },
+  {
+    id: 'royal-obsidian',
+    name: 'Royal Obsidian',
+    gradient: 'linear-gradient(180deg, #362203 0%, #0f0901 100%)',
+    primaryColor: '#362203',
+    accentColor: '#0f0901',
+    description: 'Burnished gold and deep obsidian',
+  },
+];
+
+// 7. Discord 4x3 "Gg" Font Presets matching the "Change Display Name Style" modal
+export const DISCORD_FONTS = [
+  { id: 'default', name: 'Modern Sans', family: 'var(--font-secondary), sans-serif', sample: 'Gg' },
+  { id: 'serif', name: 'Classic Serif', family: "'Cinzel Decorative', Georgia, serif", sample: 'Gg' },
+  { id: 'chunky', name: 'Heavy Bold', family: "'Bungee', Impact, sans-serif", sample: 'Gg' },
+  { id: 'gothic', name: 'Gothic Fraktur', family: "'UnifrakturMaguntia', 'MedievalSharp', fantasy", sample: 'Gg' },
+  { id: 'script', name: 'Calligraphy', family: "'Great Vibes', 'Dancing Script', cursive", sample: 'Gg' },
+  { id: 'comic', name: 'Cartoon Pop', family: "'Righteous', cursive", sample: 'Gg' },
+  { id: 'pixel', name: 'Arcade 8-Bit', family: "'Press Start 2P', monospace", sample: 'Gg' },
+  { id: 'cyber', name: 'Cyberpunk', family: "'Orbitron', sans-serif", sample: 'Gg' },
+  { id: 'marker', name: 'Street Marker', family: "'Permanent Marker', cursive", sample: 'Gg' },
+  { id: 'mono', name: 'Monospace', family: "'Share Tech Mono', monospace", sample: 'Gg' },
+  { id: 'pirate', name: 'Old English', family: "'Pirata One', serif", sample: 'Gg' },
+  { id: 'horror', name: 'Entity Horror', family: "'Creepster', cursive", sample: 'Gg' },
+];
+
+export const DISCORD_EFFECTS: { id: DisplayNameEffect; label: string }[] = [
+  { id: 'solid', label: 'Solid' },
+  { id: 'gradient', label: 'Gradient' },
+  { id: 'neon', label: 'Neon' },
+  { id: 'toon', label: 'Toon' },
+  { id: 'pop', label: 'Pop' },
+  { id: 'gummy', label: 'Gummy' },
+  { id: 'prism', label: 'Prism' },
+];
+
+export const DISCORD_COLORS = [
+  { id: 'green', hex: '#22c55e', name: 'Toxic Green' },
+  { id: 'purple', hex: '#8b5cf6', name: 'Void Purple' },
+  { id: 'cyan', hex: '#06b6d4', name: 'Cyber Cyan' },
+  { id: 'magenta', hex: '#ec4899', name: 'Hot Pink' },
+  { id: 'red', hex: '#ef4444', name: 'Blood Red' },
+  { id: 'orange', hex: '#f97316', name: 'Entity Ember' },
+  { id: 'yellow', hex: '#eab308', name: 'Imperial Gold' },
+  { id: 'white', hex: '#ffffff', name: 'Pure White' },
+];
+
+export const DISCORD_GRADIENTS = [
+  { id: 'grad-green-cyan', gradient: 'linear-gradient(90deg, #22c55e 0%, #06b6d4 100%)', name: 'Aurora' },
+  { id: 'grad-purple-pink', gradient: 'linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%)', name: 'Synthwave' },
+  { id: 'grad-sunset', gradient: 'linear-gradient(90deg, #f97316 0%, #eab308 100%)', name: 'Sunset' },
+  { id: 'grad-crimson', gradient: 'linear-gradient(90deg, #ef4444 0%, #7f1d1d 100%)', name: 'Crimson Abyss' },
+  { id: 'grad-prism', gradient: 'linear-gradient(90deg, #ff007f 0%, #7928ca 25%, #0070f3 50%, #00dfd8 75%, #ff4b4b 100%)', name: 'Prism Rainbow' },
+];
+
+
 

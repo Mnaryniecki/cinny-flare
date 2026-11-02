@@ -73,7 +73,7 @@ import { copyToClipboard } from '../../../utils/dom';
 import { stopPropagation } from '../../../utils/keyboard';
 import { getMatrixToRoomEvent } from '../../../plugins/matrix-to';
 import { getViaServers } from '../../../plugins/via-servers';
-import { useUserFlare, AvatarDecorationOverlay, UserNameplate } from '../../flare';
+import { useUserFlare, AvatarDecorationOverlay, UserNameplate, UserDisplayName } from '../../flare';
 import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
 import { useRoomPinnedEvents } from '../../../hooks/useRoomPinnedEvents';
 import { MemberPowerTag, StateEvent } from '../../../../types/matrix/room';
@@ -764,9 +764,9 @@ export const Message = as<'div', MessageProps>(
               size={messageLayout === MessageLayout.Bubble ? 'T300' : 'T400'}
               truncate
             >
-              <UserNameplate nameplate={flare?.nameplate} font={flare?.font}>
+              <UserDisplayName style={flare?.displayNameStyle || flare?.font}>
                 <UsernameBold>{senderDisplayName}</UsernameBold>
-              </UserNameplate>
+              </UserDisplayName>
             </Text>
           </Username>
           {tagIconSrc && <PowerIcon size="100" iconSrc={tagIconSrc} />}
