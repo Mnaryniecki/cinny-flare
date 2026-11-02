@@ -18,9 +18,10 @@ export function ModalSettings({ requestClose, children }: ModalSettingsProps) {
             clickOutsideDeactivates: true,
             onDeactivate: requestClose,
             escapeDeactivates: stopPropagation,
+            fallbackFocus: '.cinny-settings-modal',
           }}
         >
-          <Modal className="cinny-settings-modal" size="500" variant="Background">
+          <Modal className="cinny-settings-modal" size="500" variant="Background" tabIndex={-1}>
             {children}
           </Modal>
         </FocusTrap>

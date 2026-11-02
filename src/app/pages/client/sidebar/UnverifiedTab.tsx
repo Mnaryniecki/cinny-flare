@@ -15,8 +15,10 @@ import {
   VerificationStatus,
 } from '../../../hooks/useDeviceVerificationStatus';
 import { useCrossSigningActive } from '../../../hooks/useCrossSigning';
-import { ModalSettings } from '../../../components/ModalSettings';
-import { Settings, SettingsPages } from '../../../features/settings';
+import {
+  useOpenUserSettingsModal,
+  SettingsPages,
+} from '../../../state/hooks/userSettingsModal';
 
 function UnverifiedIndicator() {
   const mx = useMatrixClient();
@@ -40,15 +42,14 @@ function UnverifiedIndicator() {
     otherDevicesId
   );
 
-  const [settings, setSettings] = useState(false);
-  const closeSettings = () => setSettings(false);
+  const openSettings = useOpenUserSettingsModal();
 
   const hasUnverified =
     unverified || (unverifiedDeviceCount !== undefined && unverifiedDeviceCount > 0);
   return (
     <>
       {hasUnverified && (
-        <SidebarItem active={settings} className={css.UnverifiedTab}>
+        <SidebarItem className={css.UnverifiedTab}>
           <SidebarItemTooltip tooltip={unverified ? 'Unverified Device' : 'Unverified Devices'}>
             {(triggerRef) => (
               <SidebarAvatar
@@ -56,7 +57,7 @@ function UnverifiedIndicator() {
                 as="button"
                 ref={triggerRef}
                 outlined
-                onClick={() => setSettings(true)}
+                onClick={() => openSettings(SettingsPages.DevicesPage)}
               >
                 <Icon
                   style={{ color: unverified ? color.Critical.Main : color.Warning.Main }}
@@ -75,11 +76,6 @@ function UnverifiedIndicator() {
             </SidebarItemBadge>
           )}
         </SidebarItem>
-      )}
-      {settings && (
-        <ModalSettings requestClose={closeSettings}>
-          <Settings initialPage={SettingsPages.DevicesPage} requestClose={closeSettings} />
-        </ModalSettings>
       )}
     </>
   );

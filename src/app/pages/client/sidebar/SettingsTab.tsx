@@ -9,6 +9,11 @@ import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
 import { Settings } from '../../../features/settings';
 import { useUserProfile } from '../../../hooks/useUserProfile';
 import { ModalSettings } from '../../../components/ModalSettings';
+import {
+  useUserSettingsModalState,
+  useOpenUserSettingsModal,
+  useCloseUserSettingsModal,
+} from '../../../state/hooks/userSettingsModal';
 
 export function SettingsTab() {
   const mx = useMatrixClient();
@@ -16,21 +21,20 @@ export function SettingsTab() {
   const userId = mx.getUserId()!;
   const profile = useUserProfile(userId);
 
-  const [settings, setSettings] = useState(false);
+  const settingsState = useUserSettingsModalState();
+  const openSettings = useOpenUserSettingsModal();
+  const closeSettings = useCloseUserSettingsModal();
 
   const displayName = profile.displayName ?? getMxIdLocalPart(userId) ?? userId;
   const avatarUrl = profile.avatarUrl
     ? mxcUrlToHttp(mx, profile.avatarUrl, useAuthentication, 96, 96, 'crop') ?? undefined
     : undefined;
 
-  const openSettings = () => setSettings(true);
-  const closeSettings = () => setSettings(false);
-
   return (
-    <SidebarItem active={settings}>
+    <SidebarItem active={settingsState !== undefined}>
       <SidebarItemTooltip tooltip="User Settings">
         {(triggerRef) => (
-          <SidebarAvatar as="button" ref={triggerRef} onClick={openSettings}>
+          <SidebarAvatar as="button" ref={triggerRef} onClick={() => openSettings()}>
             <UserAvatar
               userId={userId}
               src={avatarUrl}
@@ -39,11 +43,6 @@ export function SettingsTab() {
           </SidebarAvatar>
         )}
       </SidebarItemTooltip>
-      {settings && (
-        <ModalSettings requestClose={closeSettings}>
-          <Settings requestClose={closeSettings} />
-        </ModalSettings>
-      )}
     </SidebarItem>
   );
 }

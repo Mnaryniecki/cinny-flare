@@ -27,9 +27,11 @@ import {
   FlareProfileBoard,
   ProfileCardFrameWrapper,
   ProfileEffectOverlay,
-  FlareSettings,
 } from '../../features/flare';
-import { ModalSettings } from '../ModalSettings';
+import {
+  useOpenUserSettingsModal,
+  SettingsPages,
+} from '../../state/hooks/userSettingsModal';
 
 type UserRoomProfileProps = {
   userId: string;
@@ -37,7 +39,7 @@ type UserRoomProfileProps = {
 export function UserRoomProfile({ userId }: UserRoomProfileProps) {
   const mx = useMatrixClient();
   const { flare } = useUserFlare(userId);
-  const [isEditing, setIsEditing] = React.useState(false);
+  const openUserSettings = useOpenUserSettingsModal();
   const useAuthentication = useMediaAuthentication();
   const navigate = useNavigate();
   const closeUserRoomProfile = useCloseUserRoomProfile();
@@ -77,13 +79,10 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
     navigate(withSearchParam(getDirectCreatePath(), directSearchParam));
   };
 
-  if (isEditing) {
-    return (
-      <ModalSettings requestClose={() => setIsEditing(false)}>
-        <FlareSettings requestClose={() => setIsEditing(false)} />
-      </ModalSettings>
-    );
-  }
+  const handleEditProfile = () => {
+    closeUserRoomProfile();
+    openUserSettings(SettingsPages.AccountPage);
+  };
 
   return (
     <ProfileCardFrameWrapper frame={flare?.profileFrame}>
@@ -128,7 +127,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
                       fill="Solid"
                       radii="300"
                       before={<Icon size="50" src={Icons.Pencil} filled />}
-                      onClick={() => setIsEditing(true)}
+                      onClick={handleEditProfile}
                     >
                       <Text size="B300">Edit Profile & Flair</Text>
                     </Button>
