@@ -1184,24 +1184,25 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
 
             {/* Profile Frame Outer Wrapper */}
             <ProfileCardFrameWrapper frame={flare.profileFrame}>
-              <div
-                style={{
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  background:
-                    flare.cardTheme?.gradient ||
-                    'linear-gradient(180deg, #420914 0%, #1a0206 100%)',
-                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.7)',
-                  position: 'relative',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                }}
-              >
+              <div style={{ position: 'relative' }}>
                 {/* Temporary Profile Effect Overlay */}
                 <ProfileEffectOverlay
                   key={replayEffectKey}
                   effect={flare.profileEffect}
                   forcePlay
                 />
+                <div
+                  style={{
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    background:
+                      flare.cardTheme?.gradient ||
+                      'linear-gradient(180deg, #420914 0%, #1a0206 100%)',
+                    boxShadow: '0 12px 36px rgba(0, 0, 0, 0.7)',
+                    position: 'relative',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
 
                 {/* Banner Section */}
                 <div
@@ -1339,6 +1340,7 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                     <FlareProfileBoard flare={flare} />
                   </div>
                 </div>
+              </div>
               </div>
             </ProfileCardFrameWrapper>
           </Box>

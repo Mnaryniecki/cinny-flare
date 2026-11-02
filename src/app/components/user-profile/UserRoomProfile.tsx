@@ -86,16 +86,17 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
 
   return (
     <ProfileCardFrameWrapper frame={flare?.profileFrame}>
-      <div
-        style={{
-          position: 'relative',
-          background: flare?.cardTheme?.gradient || undefined,
-          borderRadius: '16px',
-          overflow: 'hidden',
-        }}
-      >
+      <div style={{ position: 'relative' }}>
         <ProfileEffectOverlay effect={flare?.profileEffect} />
-        <Box direction="Column">
+        <div
+          style={{
+            position: 'relative',
+            background: flare?.cardTheme?.gradient || undefined,
+            borderRadius: '16px',
+            overflow: 'hidden',
+          }}
+        >
+          <Box direction="Column">
           <UserHero
             userId={userId}
             avatarUrl={avatarUrl}
@@ -180,6 +181,7 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
             />
           </Box>
         </Box>
+      </div>
       </div>
     </ProfileCardFrameWrapper>
   );

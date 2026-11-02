@@ -53,10 +53,10 @@ export function ProfileEffectOverlay({ effect, forcePlay }: ProfileEffectOverlay
       }}
       style={{
         position: 'absolute',
-        inset: '-20px',
+        inset: '-24px',
         pointerEvents: 'none',
         zIndex: 10,
-        overflow: 'hidden',
+        overflow: 'visible',
         borderRadius: '20px',
         opacity: isPlaying ? 1 : 0.08, // Fades down so it doesn't obscure profile
         transform: isPlaying ? 'scale(1)' : 'scale(0.98)',
