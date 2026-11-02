@@ -335,10 +335,15 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
       </Header>
 
       <Scroll style={{ flex: 1, padding: '24px' }}>
-        <Box
-          gap="600"
-          wrap="Wrap"
-          style={{ maxWidth: 1180, margin: '0 auto', alignItems: 'flex-start' }}
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: '24px',
+          }}
         >
           {/* ========================================================= */}
           {/* LEFT COLUMN: DISCORD-STYLE EDIT PROFILE SIDEBAR PANEL       */}
@@ -347,9 +352,9 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
             direction="Column"
             gap="300"
             style={{
-              flex: '1 1 340px',
-              minWidth: 310,
-              maxWidth: 420,
+              flex: '0 0 340px',
+              width: 340,
+              minWidth: 320,
               background: '#1e1f22',
               borderRadius: '16px',
               padding: '16px',
@@ -378,14 +383,14 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                 padding: '14px',
               }}
             >
-              <Box justifyContent="SpaceBetween" alignItems="Center">
-                <Box direction="Column" gap="50">
+              <Box justifyContent="SpaceBetween" alignItems="Center" gap="200">
+                <Box direction="Column" gap="50" style={{ minWidth: 0, flex: 1 }}>
                   <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
                     DISPLAY NAME STYLE
                   </Text>
-                  <div style={{ marginTop: 2 }}>
+                  <div style={{ marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <UserDisplayName style={flare.displayNameStyle || flare.font}>
-                      <Text size="T300" style={{ fontWeight: config.fontWeight.W700 }}>
+                      <Text size="T300" style={{ fontWeight: config.fontWeight.W700 }} truncate>
                         {displayName}
                       </Text>
                     </UserDisplayName>
@@ -396,9 +401,10 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                   variant="Primary"
                   fill="Solid"
                   radii="Pill"
+                  style={{ flexShrink: 0 }}
                   onClick={() => setShowDisplayNameModal(true)}
                 >
-                  <Text size="B200">Change Style</Text>
+                  <Text size="B200" style={{ whiteSpace: 'nowrap' }}>Change Style</Text>
                 </Button>
               </Box>
             </div>
@@ -418,34 +424,37 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               }}
               onClick={() => setActiveSection(activeSection === 'nameplate' ? null : 'nameplate')}
             >
-              <Box justifyContent="SpaceBetween" alignItems="Center">
-                <Box direction="Column" gap="100">
+              <Box justifyContent="SpaceBetween" alignItems="Center" gap="200">
+                <Box direction="Column" gap="100" style={{ minWidth: 0, flex: 1 }}>
                   <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
                     NAMEPLATE (SERVER MEMBER LIST)
                   </Text>
                   {/* Miniature member list tile preview with the nameplate banner! */}
                   <div
                     style={{
-                      padding: '8px 12px',
+                      padding: '6px 10px',
                       borderRadius: '8px',
                       background: flare.nameplate?.url
-                        ? `url(${mxcUrlToHttp(mx, flare.nameplate.url, useAuth)}) center/cover`
+                        ? `url(${flare.nameplate.url.startsWith('mxc://') ? mxcUrlToHttp(mx, flare.nameplate.url, useAuth) : flare.nameplate.url}) center/cover`
                         : activeNameplatePreset?.gradient || '#1e1f22',
                       border: activeNameplatePreset?.border || '1px solid rgba(255,255,255,0.1)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      width: 200,
+                      maxWidth: '100%',
+                      overflow: 'hidden',
                     }}
                   >
                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#ff7b72', flexShrink: 0 }} />
-                    <Text size="L100" style={{ fontWeight: 700, color: '#ffffff' }}>
-                      {displayName}
-                    </Text>
+                    <UserDisplayName style={flare.displayNameStyle || flare.font}>
+                      <Text size="L100" style={{ fontWeight: 700, color: '#ffffff' }} truncate>
+                        {displayName}
+                      </Text>
+                    </UserDisplayName>
                   </div>
                 </Box>
-                <Chip size="200" variant={activeSection === 'nameplate' ? 'Primary' : 'Surface'}>
-                  <Text size="L100">{activeSection === 'nameplate' ? 'Close' : 'Choose'}</Text>
+                <Chip size="200" variant={activeSection === 'nameplate' ? 'Primary' : 'Surface'} style={{ flexShrink: 0 }}>
+                  <Text size="L100" style={{ whiteSpace: 'nowrap' }}>{activeSection === 'nameplate' ? 'Close' : 'Choose'}</Text>
                 </Chip>
               </Box>
 
@@ -541,8 +550,8 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               }}
               onClick={() => setActiveSection(activeSection === 'avatar' ? null : 'avatar')}
             >
-              <Box justifyContent="SpaceBetween" alignItems="Center">
-                <Box alignItems="Center" gap="200">
+              <Box justifyContent="SpaceBetween" alignItems="Center" gap="200">
+                <Box alignItems="Center" gap="200" style={{ minWidth: 0, flex: 1 }}>
                   <div
                     style={{
                       position: 'relative',
@@ -550,13 +559,15 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                       height: 44,
                       borderRadius: '50%',
                       background: '#1e1f22',
+                      flexShrink: 0,
                     }}
                   >
                     <UserAvatar
                       userId={myUserId}
                       src={avatarUrl}
+                      alt=""
                       renderFallback={() => (
-                        <Text size="H5" style={{ color: '#fff' }}>
+                        <Text size="H5" style={{ color: '#fff', fontWeight: 700 }}>
                           {nameInitials(displayName)}
                         </Text>
                       )}
@@ -565,17 +576,17 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                       <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
                     )}
                   </div>
-                  <Box direction="Column" gap="50">
+                  <Box direction="Column" gap="50" style={{ minWidth: 0, flex: 1 }}>
                     <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
                       AVATAR & DECORATION
                     </Text>
-                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }} truncate>
                       {activeDecoration ? 'Custom Frame Active' : 'No Decoration'}
                     </Text>
                   </Box>
                 </Box>
-                <Chip size="200" variant={activeSection === 'avatar' ? 'Primary' : 'Surface'}>
-                  <Text size="L100">{activeSection === 'avatar' ? 'Close' : 'Edit'}</Text>
+                <Chip size="200" variant={activeSection === 'avatar' ? 'Primary' : 'Surface'} style={{ flexShrink: 0 }}>
+                  <Text size="L100" style={{ whiteSpace: 'nowrap' }}>{activeSection === 'avatar' ? 'Close' : 'Edit'}</Text>
                 </Chip>
               </Box>
 
@@ -685,8 +696,8 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               }}
               onClick={() => setActiveSection(activeSection === 'banner' ? null : 'banner')}
             >
-              <Box justifyContent="SpaceBetween" alignItems="Center">
-                <Box alignItems="Center" gap="200">
+              <Box justifyContent="SpaceBetween" alignItems="Center" gap="200">
+                <Box alignItems="Center" gap="200" style={{ minWidth: 0, flex: 1 }}>
                   <div
                     style={{
                       width: 44,
@@ -696,19 +707,20 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                         ? `url(${mxcUrlToHttp(mx, flare.banner.url, useAuth)}) center/cover`
                         : flare.banner?.gradient || flare.banner?.themeColor || '#76c800',
                       border: '1px solid rgba(255,255,255,0.2)',
+                      flexShrink: 0,
                     }}
                   />
-                  <Box direction="Column" gap="50">
+                  <Box direction="Column" gap="50" style={{ minWidth: 0, flex: 1 }}>
                     <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
                       BANNER COLOR / IMAGE
                     </Text>
-                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }} truncate>
                       {flare.banner?.url ? 'Custom Banner Image' : 'Banner Color Active'}
                     </Text>
                   </Box>
                 </Box>
-                <Chip size="200" variant={activeSection === 'banner' ? 'Primary' : 'Surface'}>
-                  <Text size="L100">{activeSection === 'banner' ? 'Close' : 'Edit'}</Text>
+                <Chip size="200" variant={activeSection === 'banner' ? 'Primary' : 'Surface'} style={{ flexShrink: 0 }}>
+                  <Text size="L100" style={{ whiteSpace: 'nowrap' }}>{activeSection === 'banner' ? 'Close' : 'Edit'}</Text>
                 </Chip>
               </Box>
 
@@ -786,8 +798,8 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               }}
               onClick={() => setActiveSection(activeSection === 'theme' ? null : 'theme')}
             >
-              <Box justifyContent="SpaceBetween" alignItems="Center">
-                <Box alignItems="Center" gap="200">
+              <Box justifyContent="SpaceBetween" alignItems="Center" gap="200">
+                <Box alignItems="Center" gap="200" style={{ minWidth: 0, flex: 1 }}>
                   <div
                     style={{
                       width: 44,
@@ -797,19 +809,20 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                         flare.cardTheme?.gradient ||
                         'linear-gradient(180deg, #420914 0%, #1a0206 100%)',
                       border: '1px solid rgba(255,255,255,0.2)',
+                      flexShrink: 0,
                     }}
                   />
-                  <Box direction="Column" gap="50">
+                  <Box direction="Column" gap="50" style={{ minWidth: 0, flex: 1 }}>
                     <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
                       CARD THEME (GRADIENT)
                     </Text>
-                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                    <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }} truncate>
                       {activeCardTheme ? activeCardTheme.name : 'Custom Gradient'}
                     </Text>
                   </Box>
                 </Box>
-                <Chip size="200" variant={activeSection === 'theme' ? 'Primary' : 'Surface'}>
-                  <Text size="L100">{activeSection === 'theme' ? 'Close' : 'Edit'}</Text>
+                <Chip size="200" variant={activeSection === 'theme' ? 'Primary' : 'Surface'} style={{ flexShrink: 0 }}>
+                  <Text size="L100" style={{ whiteSpace: 'nowrap' }}>{activeSection === 'theme' ? 'Close' : 'Edit'}</Text>
                 </Chip>
               </Box>
 
@@ -885,18 +898,18 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               }}
               onClick={() => setActiveSection(activeSection === 'effectFrame' ? null : 'effectFrame')}
             >
-              <Box justifyContent="SpaceBetween" alignItems="Center">
-                <Box direction="Column" gap="50">
+              <Box justifyContent="SpaceBetween" alignItems="Center" gap="200">
+                <Box direction="Column" gap="50" style={{ minWidth: 0, flex: 1 }}>
                   <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
                     PROFILE EFFECT & FRAME
                   </Text>
-                  <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                  <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }} truncate>
                     {activeEffectPreset ? activeEffectPreset.name : flare.profileEffect?.url ? 'Custom Effect' : 'No Effect'} •{' '}
                     {activeFramePreset ? activeFramePreset.name : 'No Frame'}
                   </Text>
                 </Box>
-                <Chip size="200" variant={activeSection === 'effectFrame' ? 'Primary' : 'Surface'}>
-                  <Text size="L100">{activeSection === 'effectFrame' ? 'Close' : 'Edit'}</Text>
+                <Chip size="200" variant={activeSection === 'effectFrame' ? 'Primary' : 'Surface'} style={{ flexShrink: 0 }}>
+                  <Text size="L100" style={{ whiteSpace: 'nowrap' }}>{activeSection === 'effectFrame' ? 'Close' : 'Edit'}</Text>
                 </Chip>
               </Box>
 
@@ -1054,17 +1067,17 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               }}
               onClick={() => setActiveSection(activeSection === 'bioBoards' ? null : 'bioBoards')}
             >
-              <Box justifyContent="SpaceBetween" alignItems="Center">
-                <Box direction="Column" gap="50">
+              <Box justifyContent="SpaceBetween" alignItems="Center" gap="200">
+                <Box direction="Column" gap="50" style={{ minWidth: 0, flex: 1 }}>
                   <Text size="L100" style={{ color: '#949ba4', fontWeight: config.fontWeight.W700 }}>
                     BIO & SHOWCASE WIDGETS
                   </Text>
-                  <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }}>
+                  <Text size="T200" style={{ fontWeight: config.fontWeight.W600 }} truncate>
                     {flare.boards?.length || 0} Widgets Active
                   </Text>
                 </Box>
-                <Chip size="200" variant={activeSection === 'bioBoards' ? 'Primary' : 'Surface'}>
-                  <Text size="L100">{activeSection === 'bioBoards' ? 'Close' : 'Edit'}</Text>
+                <Chip size="200" variant={activeSection === 'bioBoards' ? 'Primary' : 'Surface'} style={{ flexShrink: 0 }}>
+                  <Text size="L100" style={{ whiteSpace: 'nowrap' }}>{activeSection === 'bioBoards' ? 'Close' : 'Edit'}</Text>
                 </Chip>
               </Box>
 
@@ -1131,7 +1144,13 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
           <Box
             direction="Column"
             gap="200"
-            style={{ flex: '1 1 440px', minWidth: 320, maxWidth: 500 }}
+            style={{
+              flex: '1 1 440px',
+              minWidth: 360,
+              maxWidth: 480,
+              position: 'sticky',
+              top: 0,
+            }}
           >
             <Box justifyContent="SpaceBetween" alignItems="Center">
               <Text
@@ -1220,6 +1239,7 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
                       <UserAvatar
                         userId={myUserId}
                         src={avatarUrl}
+                        alt=""
                         renderFallback={() => (
                           <Text size="H2" style={{ fontWeight: 700, color: '#ffffff' }}>
                             {nameInitials(displayName)}
@@ -1315,7 +1335,7 @@ export function FlareSettings({ requestClose }: FlareSettingsProps) {
               </div>
             </ProfileCardFrameWrapper>
           </Box>
-        </Box>
+        </div>
       </Scroll>
 
       {/* Discord Change Display Name Style Modal */}

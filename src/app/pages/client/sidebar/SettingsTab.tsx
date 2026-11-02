@@ -8,7 +8,7 @@ import { nameInitials } from '../../../utils/common';
 import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
 import { Settings } from '../../../features/settings';
 import { useUserProfile } from '../../../hooks/useUserProfile';
-import { Modal500 } from '../../../components/Modal500';
+import { ModalSettings } from '../../../components/ModalSettings';
 
 export function SettingsTab() {
   const mx = useMatrixClient();
@@ -40,9 +40,9 @@ export function SettingsTab() {
         )}
       </SidebarItemTooltip>
       {settings && (
-        <Modal500 requestClose={closeSettings}>
+        <ModalSettings requestClose={closeSettings}>
           <Settings requestClose={closeSettings} />
-        </Modal500>
+        </ModalSettings>
       )}
     </SidebarItem>
   );

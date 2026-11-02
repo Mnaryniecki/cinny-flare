@@ -59,6 +59,13 @@ import { useSpaceOptionally } from '../../hooks/useSpace';
 import { ContainerColor } from '../../styles/ContainerColor.css';
 import { useFlattenPowerTagMembers, useGetMemberPowerTag } from '../../hooks/useMemberPowerTag';
 import { useRoomCreators } from '../../hooks/useRoomCreators';
+import { nameInitials } from '../../utils/common';
+import {
+  useUserFlare,
+  AvatarDecorationOverlay,
+  UserDisplayName,
+  PRESET_NAMEPLATES,
+} from '../flare';
 
 type MemberDrawerHeaderProps = {
   room: Room;
@@ -126,23 +133,59 @@ function MemberItem({
     ? mx.mxcUrlToHttp(avatarMxcUrl, 100, 100, 'crop', undefined, false, useAuthentication)
     : undefined;
 
+  const { flare } = useUserFlare(member.userId);
+  const nameplate = flare?.nameplate;
+  const nameplatePreset = nameplate?.preset
+    ? PRESET_NAMEPLATES.find((p) => p.id === nameplate.preset)
+    : undefined;
+
+  let nameplateBg = nameplate?.gradient || nameplatePreset?.gradient;
+  let nameplateBorder =
+    nameplatePreset?.border || (nameplate?.url ? '1px solid rgba(255, 255, 255, 0.15)' : undefined);
+
+  if (nameplate?.url) {
+    const resolved = nameplate.url.startsWith('mxc://')
+      ? mx.mxcUrlToHttp(nameplate.url, 300, 60, 'crop', undefined, false, useAuthentication)
+      : nameplate.url;
+    if (resolved) {
+      nameplateBg = `url(${resolved}) center/cover no-repeat`;
+    }
+  }
+
   return (
     <MenuItem
-      style={{ padding: `0 ${config.space.S200}` }}
+      style={{
+        padding: `0 ${config.space.S200}`,
+        background: nameplateBg || undefined,
+        border: nameplateBorder || undefined,
+        borderRadius: nameplateBg ? '8px' : undefined,
+        boxShadow: nameplateBg ? '0 2px 8px rgba(0, 0, 0, 0.35)' : undefined,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
       aria-pressed={pressed}
       data-user-id={member.userId}
       variant="Background"
       radii="400"
       onClick={onClick}
       before={
-        <Avatar size="200">
-          <UserAvatar
-            userId={member.userId}
-            src={avatarUrl ?? undefined}
-            alt={name}
-            renderFallback={() => <Icon size="50" src={Icons.User} filled />}
-          />
-        </Avatar>
+        <div style={{ position: 'relative', display: 'inline-flex', zIndex: 1, margin: '2px 0' }}>
+          <Avatar size="200" radii="Pill">
+            <UserAvatar
+              userId={member.userId}
+              src={avatarUrl ?? undefined}
+              alt=""
+              renderFallback={() => (
+                <Text size="L100" style={{ fontWeight: 700, color: '#ffffff' }}>
+                  {nameInitials(name)}
+                </Text>
+              )}
+            />
+          </Avatar>
+          {flare?.avatarDecoration?.url && (
+            <AvatarDecorationOverlay decoration={flare.avatarDecoration} />
+          )}
+        </div>
       }
       after={
         typing && (
@@ -152,10 +195,12 @@ function MemberItem({
         )
       }
     >
-      <Box grow="Yes">
-        <Text size="T400" truncate>
-          {name}
-        </Text>
+      <Box grow="Yes" style={{ position: 'relative', zIndex: 1, minWidth: 0 }}>
+        <UserDisplayName style={flare?.displayNameStyle || flare?.font}>
+          <Text size="T400" truncate style={{ color: nameplateBg ? '#ffffff' : undefined, fontWeight: 600 }}>
+            {name}
+          </Text>
+        </UserDisplayName>
       </Box>
     </MenuItem>
   );

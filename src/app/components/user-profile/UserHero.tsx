@@ -16,6 +16,7 @@ import * as css from './styles.css';
 import { UserAvatar } from '../user-avatar';
 import colorMXID from '../../../util/colorMXID';
 import { getMxIdLocalPart } from '../../utils/matrix';
+import { nameInitials } from '../../utils/common';
 import { BreakWord, LineClamp3 } from '../../styles/Text.css';
 import { UserPresence } from '../../hooks/useUserPresence';
 import { AvatarPresence, PresenceBadge } from '../presence';
@@ -73,13 +74,18 @@ export function UserHero({ userId, avatarUrl, presence, flare }: UserHeroProps) 
               onClick={avatarUrl ? () => setViewAvatar(avatarUrl) : undefined}
               className={css.UserHeroAvatar}
               size="500"
+              radii="Pill"
             >
               <UserAvatar
                 className={css.UserHeroAvatarImg}
                 userId={userId}
                 src={avatarUrl}
-                alt={userId}
-                renderFallback={() => <Icon size="500" src={Icons.User} filled />}
+                alt=""
+                renderFallback={() => (
+                  <Text size="H2" style={{ fontWeight: 700, color: '#ffffff' }}>
+                    {nameInitials(getMxIdLocalPart(userId) ?? userId)}
+                  </Text>
+                )}
               />
             </Avatar>
             {flare?.avatarDecoration?.url && (

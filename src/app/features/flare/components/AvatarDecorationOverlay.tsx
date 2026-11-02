@@ -109,9 +109,12 @@ export function AvatarDecorationOverlay({
         ) : (
           <img
             src={resolvedSrc!}
-            alt="Avatar decoration"
+            alt=""
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             draggable={false}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
           />
         )}
       </div>

@@ -29,6 +29,7 @@ import {
   ProfileEffectOverlay,
   FlareSettings,
 } from '../../features/flare';
+import { ModalSettings } from '../ModalSettings';
 
 type UserRoomProfileProps = {
   userId: string;
@@ -78,9 +79,9 @@ export function UserRoomProfile({ userId }: UserRoomProfileProps) {
 
   if (isEditing) {
     return (
-      <div style={{ width: '100%', minWidth: 320, maxWidth: 640 }}>
+      <ModalSettings requestClose={() => setIsEditing(false)}>
         <FlareSettings requestClose={() => setIsEditing(false)} />
-      </div>
+      </ModalSettings>
     );
   }
 
